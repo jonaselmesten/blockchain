@@ -5,7 +5,7 @@ from hashlib import sha256
 
 class Block:
 
-    _difficulty = 4
+    _difficulty = 5
 
     def __init__(self, data, previous_hash):
 

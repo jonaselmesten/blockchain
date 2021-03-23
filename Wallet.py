@@ -1,6 +1,6 @@
 from cryptography.exceptions import InvalidSignature
 
-from KeyPair import KeyPair
+from keypair import KeyPair
 from transaction.Transaction import Transaction
 
 

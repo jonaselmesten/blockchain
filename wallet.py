@@ -7,7 +7,7 @@ from transaction.Transaction import Transaction
 class Wallet:
 
     def __init__(self):
-        self.key_pair = KeyPair()
+        self.key_pair = KeyPair(["jonas", "heter", "bulkis"])
 
     def sign_transaction(self, transaction: Transaction):
         transaction_hash = transaction.compute_transaction_id()

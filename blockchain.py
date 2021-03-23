@@ -4,19 +4,14 @@ from block import Block
 
 
 class Blockchain:
-    # difficulty of our PoW algorithm
-    difficulty = 2
+
+    _difficulty = 2
 
     def __init__(self):
         self.unconfirmed_transactions = []
         self.chain = []
 
     def create_genesis_block(self):
-        """
-        A function to generate genesis block and appends it to
-        the chain. The block has index 0, previous_hash as 0, and
-        a valid hash.
-        """
         genesis_block = Block(0, [], 0, "0")
         genesis_block.hash = genesis_block.compute_hash()
         self.chain.append(genesis_block)
@@ -74,17 +69,18 @@ class Blockchain:
 
     @classmethod
     def check_chain_validity(cls, chain):
+
         result = True
         previous_hash = "0"
 
         for block in chain:
+
             block_hash = block.hash
             # remove the hash field to recompute the hash again
             # using `compute_hash` method.
             delattr(block, "hash")
 
-            if not cls.is_valid_proof(block, block_hash) or \
-                    previous_hash != block.previous_hash:
+            if not cls.is_valid_proof(block, block_hash) or previous_hash != block.previous_hash:
                 result = False
                 break
 

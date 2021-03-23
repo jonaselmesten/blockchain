@@ -21,8 +21,10 @@ def fetch_posts():
     get_chain_address = "{}/chain".format(CONNECTED_NODE_ADDRESS)
     response = requests.get(get_chain_address)
     if response.status_code == 200:
+
         content = []
         chain = json.loads(response.content)
+
         for block in chain["chain"]:
             for tx in block["transactions"]:
                 tx["index"] = block["index"]
@@ -30,6 +32,7 @@ def fetch_posts():
                 content.append(tx)
 
         global posts
+
         posts = sorted(content, key=lambda k: k['timestamp'],
                        reverse=True)
 

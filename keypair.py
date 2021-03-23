@@ -1,5 +1,3 @@
-import ctypes
-import time
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -14,16 +12,20 @@ class KeyPair:
 
     def __init__(self, word_list):
         self.private_key = ec.derive_private_key(self.generate_private_number(word_list), self._curve, default_backend())
-        self.public_key = self.private_key.public_key()
+        self._public_key = self.private_key.public_key()
 
-        print('Private key: 0x%x' % self.private_key.private_numbers().private_value)
-        print('Public point (Uncompressed): 0x%s' % self.public_key.public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint).hex())
+        #print('Private key: 0x%x' % self.private_key.private_numbers().private_value)
+        #print('Public point 0x%s' % self._public_key.public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint).hex())
+
+    @property
+    def public_key(self):
+        return self._public_key
 
     def sign_data(self, data):
-        return self.private_key.sign(bytes(data), self._signature_algorithm)
+        return self.private_key.sign(data, self._signature_algorithm)
 
     def verify(self, data, signature):
-        self.public_key.verify(signature, data, self._signature_algorithm)
+        self._public_key.verify(signature, data, self._signature_algorithm)
 
     def generate_private_number(self, word_list):
 
@@ -43,6 +45,8 @@ class KeyPair:
 
         return value
 
+
+
 def test():
 
     # Sign some data
@@ -56,9 +60,11 @@ def test():
 
         kp1 = KeyPair(words)
         signature = kp1.sign_data(data)
+        print(signature)
 
         kp1.verify(data, signature)
 
         print('Verification OK')
     except InvalidSignature:
         print('Verification failed')
+

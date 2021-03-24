@@ -26,6 +26,7 @@ def fetch_posts():
         chain = json.loads(response.content)
 
         for block in chain["chain"]:
+            print(block)
             for tx in block["transactions"]:
                 tx["index"] = block["index"]
                 tx["hash"] = block["previous_hash"]

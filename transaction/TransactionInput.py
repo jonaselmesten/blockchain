@@ -2,7 +2,6 @@
 
 class TransactionInput:
 
-    def __init__(self, transaction_output):
-        self.transaction_output = transaction_output
-
-        
+    def __init__(self, tx_output_id):
+        self.tx_output_id = tx_output_id
+        self.tx_output = None

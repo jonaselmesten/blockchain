@@ -5,9 +5,10 @@ from block import Block
 
 class Blockchain:
 
-    _difficulty = 2
+    difficulty = 2
 
     def __init__(self):
+        self.unspent_tx = {}
         self.unconfirmed_transactions = []
         self.chain = []
 
@@ -108,6 +109,8 @@ class Blockchain:
         self.add_block(new_block, proof)
 
         self.unconfirmed_transactions = []
+
+        print("Block mined:", len(self.chain))
 
         return True
 

@@ -47,24 +47,3 @@ class KeyPair:
 
 
 
-def test():
-
-    # Sign some data
-    data = b"{num:sdasdasd}"
-    data_no = b"{nums:sdasdasd}"
-
-    words = ["jonas", "heter", "jag", "nästan", "nästan"]
-    words2 = ["jnas", "heter", "jag", "nästan", "nästan"]
-
-    try:
-
-        kp1 = KeyPair(words)
-        signature = kp1.sign_data(data)
-        print(signature)
-
-        kp1.verify(data, signature)
-
-        print('Verification OK')
-    except InvalidSignature:
-        print('Verification failed')
-

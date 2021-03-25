@@ -1,6 +1,6 @@
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 
-from string_util import apply_sha256, public_key_to_string
+from hash_util import apply_sha256, public_key_to_string
 
 
 class TransactionOutput:

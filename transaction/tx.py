@@ -2,29 +2,22 @@ import json
 from hashlib import sha256
 from time import time
 
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec
-
-from string_util import public_key_to_string
-from transaction.TransactionInput import TransactionInput
+from hash_util import public_key_to_string, signature_algorithm
+from transaction.tx_output import TransactionOutput
 
 
 class Transaction:
+
     _sequence = 0
-    _signature_algorithm = ec.ECDSA(hashes.SHA256())
 
     def __init__(self, sender, receiver, amount, tx_inputs, blockchain):
         self.sender = sender
         self.receiver = receiver
         self.blockchain = blockchain
-
         self.amount = amount
-
         self.tx_inputs = tx_inputs
         self.tx_outputs = []
-
         self.time_stamp = time()
-
         self.tx_id = None
         self.signature = None
 
@@ -37,12 +30,11 @@ class Transaction:
         return data
 
     def compute_transaction_id(self):
-        transaction_string = json.dumps(self.__dict__).encode()
+        transaction_string = json.dumps(self.__dict__, default=str)
         return sha256(transaction_string.encode()).hexdigest()
 
     def is_valid(self):
-        self.sender.verify(self.signature, bytes(self.get_sign_data(), "utf-8"), self._signature_algorithm)
-        print("Transaction verified")
+        self.sender.verify(self.signature, bytes(self.get_sign_data(), "utf-8"), signature_algorithm)
         return True
 
     def process_tx(self):
@@ -56,11 +48,15 @@ class Transaction:
         for tx_input in self.tx_inputs:
             tx_input.tx_output = self.blockchain.unspent_tx[tx_input.tx_output_id]
 
-        left_over = self.get_inputs_value - self.amount
+        left_over = self.get_inputs_value() - self.amount
+
+        if left_over < 0:
+            print("Not enough funds")
+            return False
 
         self.tx_id = self.compute_transaction_id()
-        self.tx_outputs.append(TransactionInput(self.receiver, self.amount, self.tx_id))
-        self.tx_outputs.append(TransactionInput(self.sender, left_over, self.tx_id))
+        self.tx_outputs.append(TransactionOutput(self.receiver, self.amount, self.tx_id))
+        self.tx_outputs.append(TransactionOutput(self.sender, left_over, self.tx_id))
 
         # Add tx-outputs to blockchain
         for tx_output in self.tx_outputs:
@@ -73,6 +69,7 @@ class Transaction:
             else:
                 del self.blockchain.unspent_tx[tx_input.tx_output.tx_id]
 
+        return True
 
     def get_inputs_value(self):
         total = 0

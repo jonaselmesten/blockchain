@@ -32,7 +32,6 @@ blockchain.add_new_transaction(wallet1.write_to_blockchain("MER BBB"))
 blockchain.mine()
 
 
-print_wallets()
-
 blockchain.print_data(wallet1.public_key)
 
+print_wallets()

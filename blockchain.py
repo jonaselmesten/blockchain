@@ -26,6 +26,7 @@ class Blockchain:
 
         print("Data written by ", key_hash[0:6], ":")
         for block_index in self.data[key_hash]:
+            print("Block ", block_index, ":")
             for data_line in self.chain[block_index].data[key_hash]:
                 print(data_line)
 
@@ -35,7 +36,6 @@ class Blockchain:
             print(hash_util.public_key_to_string(tx_output.recipient)[0:6], " - ", tx_output.amount)
 
     def create_genesis_block(self, first_wallet):
-
         amount = 10000
         genesis_tx = Transaction(self.coinbase, first_wallet, amount, [], self)
         genesis_block = Block(0, [genesis_tx], "0")

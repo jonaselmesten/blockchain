@@ -254,5 +254,6 @@ class Blockchain:
 
         print("Block mined:", len(self.chain))
 
+
         return True
 

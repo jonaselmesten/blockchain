@@ -20,14 +20,14 @@ blockchain.mine()
 
 value = 333
 blockchain.add_new_transaction(wallet1.send_funds(wallet2.public_key, value))
-blockchain.add_new_transaction(wallet1.write_to_blockchain("jonas skrev detasdasdasdsadasdsddddddddddsdddsdawda2da2d123123wdqwdqwdta om "))
-blockchain.add_new_transaction(wallet1.write_to_blockchain("jonas  om "))
+blockchain.add_new_data_transaction(wallet1.write_to_blockchain("jonas skrev detasdasdasdsadasdsddddddddddsdddsdawda2da2d123123wdqwdqwdta om "))
+blockchain.add_new_data_transaction(wallet1.write_to_blockchain("jonas  om "))
 
 blockchain.mine()
 
 
-blockchain.add_new_transaction(wallet1.write_to_blockchain("MERA BLOCK"))
-blockchain.add_new_transaction(wallet1.write_to_blockchain("MER BBB"))
+blockchain.add_new_data_transaction(wallet1.write_to_blockchain("MERA BLOCK"))
+blockchain.add_new_data_transaction(wallet1.write_to_blockchain("MER BBB"))
 
 blockchain.mine()
 

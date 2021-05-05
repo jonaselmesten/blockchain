@@ -83,7 +83,7 @@ class Wallet:
             if total > amount:
                 break
 
-        new_tx = Transaction(self.public_key, recipient, amount, tx_inputs, self.blockchain)
+        new_tx = Transaction(self.public_key, recipient, amount, tx_inputs)
         self.sign_transaction(new_tx)
 
         for tx_input in tx_inputs:

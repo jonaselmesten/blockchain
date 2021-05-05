@@ -31,53 +31,7 @@ class DataTransaction:
         self.sender.verify(self.signature, bytes(self.get_sign_data(), "utf-8"), signature_algorithm)
         return True
 
-    def process_tx(self):
 
-        # Verify transaction
-        if not self.is_valid():
-            print("Transaction signature failed to verify")
-            return False
-
-        # Gather all tx-inputs from block chain
-        for tx_input in self.tx_inputs:
-            tx_input.tx_output = self.blockchain.unspent_tx[tx_input.tx_output_id]
-
-        left_over = self.get_inputs_value() - sys.getsizeof(self.data)
-
-        if left_over < 0:
-            print("Not enough funds - TX")
-            return False
-
-        self.tx_id = self.compute_transaction_id()
-        self.tx_outputs.append(TransactionOutput(self.sender, left_over, self.tx_id))
-        self.tx_outputs.append(TransactionOutput(self.blockchain.coinbase.public_key, len(self.data) * 0.001, self.tx_id))
-
-        # Add tx-outputs to blockchain
-        for tx_output in self.tx_outputs:
-            self.blockchain.unspent_tx[tx_output.tx_id] = tx_output
-
-        # Remove tx:s as spent
-        for tx_input in self.tx_inputs:
-            if tx_input.tx_output is None:
-                continue
-            else:
-                del self.blockchain.unspent_tx[tx_input.tx_output.tx_id]
-
-        key_hash = public_key_to_string(self.sender)
-
-        # Write to last block
-        if key_hash in self.blockchain.last_block.data:
-            self.blockchain.last_block.data[key_hash].append(self.data)
-        else:
-            self.blockchain.last_block.data[key_hash] = [self.data]
-
-        if key_hash in self.blockchain.data:
-            self.blockchain.data[key_hash].add(self.blockchain.last_block.index)
-        else:
-            self.blockchain.data[key_hash] = set([self.blockchain.last_block.index])
-
-        print("Wrote data to blockchain")
-        return True
 
     def get_inputs_value(self):
         total = 0

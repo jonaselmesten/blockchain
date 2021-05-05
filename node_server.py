@@ -7,12 +7,17 @@ import requests
 
 from block import Block
 from blockchain import Blockchain
+from wallet.wallet import Wallet
 
 app = Flask(__name__)
 
+
 # the node's copy of blockchain
 blockchain = Blockchain()
-blockchain.create_genesis_block()
+
+start_wallet = Wallet(["jonas", "jonas", "jonas", "jonas", "jonas"], blockchain)
+
+blockchain.create_genesis_block(start_wallet)
 
 # the address to other participating members of the network
 peers = set()
@@ -229,7 +234,7 @@ def announce_new_block(block):
 
 # How to run:
 # Start blockchain node:
-# set FLASK_APP=server.py
+# set FLASK_APP=node_server.py
 # flask run --port 8000
 
 # Then new terminal session:

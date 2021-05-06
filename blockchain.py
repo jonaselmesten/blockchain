@@ -1,5 +1,4 @@
 import sys
-import time
 from sys import getsizeof
 
 import hash_util
@@ -21,9 +20,9 @@ class Blockchain:
         self.data = {}
         self.coinbase = Wallet(["ss", "jonas", "jonas", "jonas", "jonasdas"], self)
 
-    def print_data(self, wallet):
+    def print_data(self, wallet_public_key):
 
-        key_hash = public_key_to_string(wallet)
+        key_hash = public_key_to_string(wallet_public_key)
 
         print("Data written by ", key_hash[0:6], ":")
         for block_index in self.data[key_hash]:
@@ -37,7 +36,7 @@ class Blockchain:
 
     def create_genesis_block(self, first_wallet):
         amount = 10000
-        genesis_tx = Transaction(self.coinbase, first_wallet, amount, [])
+        genesis_tx = Transaction(self.coinbase.public_key, first_wallet.public_key, amount, [])
         genesis_block = Block(0, [genesis_tx], "0")
         genesis_block.hash = genesis_block.compute_hash()
         tx_output = TransactionOutput(first_wallet.public_key, amount, "0")
@@ -85,6 +84,7 @@ class Blockchain:
 
     def add_new_transaction(self, transaction):
 
+
         if transaction is None:
             print("No transaction to add")
             return
@@ -93,6 +93,7 @@ class Blockchain:
             self.unconfirmed_transactions.append(transaction)
         else:
             print("Transaction could not be processed")
+
 
     def add_new_data(self, transaction, data):
         pass
@@ -132,6 +133,8 @@ class Blockchain:
         print("Chain is valid")
         return result
 
+    def __iter__(self):
+        return iter(self.chain)
 
     def process_tx(self, transaction):
 
@@ -164,6 +167,8 @@ class Blockchain:
                 continue
             else:
                 del self.unspent_tx[tx_input.tx_output.tx_id]
+
+
 
         return True
 
@@ -228,10 +233,6 @@ class Blockchain:
         return True
 
 
-
-
-
-
     def mine(self):
         """
         This function serves as an interface to add the pending
@@ -253,7 +254,6 @@ class Blockchain:
         self.unconfirmed_transactions = []
 
         print("Block mined:", len(self.chain))
-
 
         return True
 

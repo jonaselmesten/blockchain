@@ -1,10 +1,14 @@
 import sys
+from time import time
+
+from cryptography.hazmat.primitives._serialization import Encoding, PublicFormat
 
 import hash_util
 from transaction.tx import Transaction
 from transaction.tx_data import DataTransaction
 from transaction.tx_input import TransactionInput
 from wallet.keypair import KeyPair
+
 
 class Wallet:
 
@@ -17,10 +21,19 @@ class Wallet:
     def public_key(self):
         return self.key_pair.public_key
 
+    def public_key_str(self):
+        """
+        Create a byte-string from the public key.
+        @return: Public key as string.
+        """
+        return self.key_pair.public_key.public_bytes(encoding=Encoding.PEM,
+                                                     format=PublicFormat.SubjectPublicKeyInfo).decode()
+
     def sign_transaction(self, transaction):
         sign_data = transaction.get_sign_data()
         signature = self.key_pair.sign_data(bytes(sign_data, "utf-8"))
         transaction.signature = signature
+        transaction.time_stamp = time().hex()
 
     def verify_signature(self, signature, transaction):
         transaction_hash = transaction.compute_transaction_id()
@@ -56,7 +69,7 @@ class Wallet:
             if total > data_cost:
                 break
 
-        new_tx = DataTransaction(self.public_key, data, tx_inputs, self.blockchain)
+        new_tx = DataTransaction(self.public_key, data, tx_inputs)
         self.sign_transaction(new_tx)
 
         for tx_input in tx_inputs:

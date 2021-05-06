@@ -1,24 +1,23 @@
 import json
-import sys
 from hashlib import sha256
-from time import time
 
 from hash_util import public_key_to_string, signature_algorithm, apply_sha256
-from transaction.tx_output import TransactionOutput
 
 
 class DataTransaction:
 
     _sequence = 0
 
-    def __init__(self, sender, data, tx_inputs, blockchain):
+    def __init__(self, sender, data, tx_inputs):
         self.sender = sender
-        self.blockchain = blockchain
         self.tx_inputs = tx_inputs
         self.tx_outputs = []
         self.data = data
         self.tx_id = None
         self.signature = None
+
+    def to_json(self):
+        return self.__dict__
 
     def get_sign_data(self):
         return public_key_to_string(self.sender) + apply_sha256(json.dumps(self.data, default=str))

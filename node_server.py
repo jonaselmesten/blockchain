@@ -1,9 +1,8 @@
 import json
-from hashlib import sha256
 import time
 
-from flask import Flask, request
 import requests
+from flask import Flask, request
 
 from block import Block
 from blockchain import Blockchain
@@ -11,16 +10,13 @@ from wallet.wallet import Wallet
 
 app = Flask(__name__)
 
+# the address to other participating members of the network
+peers = set()
 
 # the node's copy of blockchain
 blockchain = Blockchain()
-
 start_wallet = Wallet(["jonas", "jonas", "jonas", "jonas", "jonas"], blockchain)
-
 blockchain.create_genesis_block(start_wallet)
-
-# the address to other participating members of the network
-peers = set()
 
 
 # endpoint to submit a new transaction. This will be used by
@@ -96,6 +92,7 @@ def register_new_peers():
     # Return the consensus blockchain to the newly registered node
     # so that he can sync
     return get_chain()
+
 
 
 @app.route('/register_with', methods=['POST'])
@@ -229,16 +226,6 @@ def announce_new_block(block):
                       headers=headers)
 
 
-# Uncomment this line if you want to specify the port number in the code
-#app.run(debug=True, port=8000)
-
-# How to run:
-# Start blockchain node:
-# set FLASK_APP=node_server.py
-# flask run --port 8000
-
-# Then new terminal session:
-# python run_app.py
 
 # curl -X POST http://localhost:8000/new_transaction -H "Content-Type: application/json" -d "{\"author\":\"Test Value\", \"content\":\"Test Value\"}"
 # curl -X POST http://localhost:8001/register_with -H "Content-Type: application/json" -d "{\"node_address\":\"http://localhost:8000\"}"

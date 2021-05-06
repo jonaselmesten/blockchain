@@ -2,10 +2,19 @@ import json
 import time
 from hashlib import sha256
 
+from serialize import JsonSerializable
+
 
 class Block:
 
     def __init__(self, index: int, transactions: list, previous_hash: str, nonce: int = 0):
+        """
+
+        @param index: Index of the block in the blockchain.
+        @param transactions: TX of this block.
+        @param previous_hash: Hash of previous block.
+        @param nonce: Nonce value used when mining.
+        """
         self.index = index
         self.transactions = transactions
         self.data = {}
@@ -14,7 +23,7 @@ class Block:
         self.nonce = nonce
 
     def compute_hash(self) -> str:
-        block_string = json.dumps(self.__dict__, default=str)
+        block_string = json.dumps(self.__dict__, default=JsonSerializable.dumper)
         return sha256(block_string.encode()).hexdigest()
 
 

@@ -33,7 +33,6 @@ class KeyPair:
 
         hex_str = str(sign_bytes.hex())
 
-
         hex_bytes = bytes.fromhex(hex_str)
 
         assert hex_bytes == sign_bytes

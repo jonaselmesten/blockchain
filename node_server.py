@@ -6,6 +6,7 @@ from flask import Flask, request
 
 from block import Block
 from blockchain import Blockchain
+from serialize import JsonSerializable
 from wallet.wallet import Wallet
 
 app = Flask(__name__)
@@ -43,7 +44,7 @@ def new_transaction():
 # Our application will be using this endpoint to query
 # all the posts to display.
 @app.route('/chain', methods=['GET'])
-def get_chain():
+def blockchain_to_json():
 
     chain_data = []
 
@@ -51,30 +52,10 @@ def get_chain():
         chain_data.append(block.__dict__)
 
     return json.dumps({"length": len(chain_data),
-                       "chain": chain_data,
-                       "peers": list(peers)})
-
-
-# endpoint to request the node to mine the unconfirmed
-# transactions (if any). We'll be using it to initiate
-# a command to mine from our application itself.
-@app.route('/mine', methods=['GET'])
-def mine_unconfirmed_transactions():
-
-    result = blockchain.mine()
-
-    if not result:
-        return "No transactions to mine"
-    else:
-        # Making sure we have the longest chain before announcing to the network
-        chain_length = len(blockchain.chain)
-        consensus()
-
-        if chain_length == len(blockchain.chain):
-            # announce the recently mined block to the network
-            announce_new_block(blockchain.last_block)
-
-        return "Block #{} is mined.".format(blockchain.last_block.index)
+                       "blocks": chain_data,
+                       "peers": list(peers)},
+                      default=JsonSerializable.dumper,
+                      indent=4)
 
 
 # endpoint to add new peers to the network.
@@ -88,11 +69,12 @@ def register_new_peers():
 
     # Add the node to the peer list
     peers.add(node_address)
+    print("New node registered:", node_address)
+    print("Number of peers:", len(peers))
 
     # Return the consensus blockchain to the newly registered node
     # so that he can sync
-    return get_chain()
-
+    return blockchain_to_json()
 
 
 @app.route('/register_with', methods=['POST'])
@@ -103,6 +85,7 @@ def register_with_existing_node():
     request, and sync the blockchain as well as peer data.
     """
     node_address = request.get_json()["node_address"]
+    print("Register " + request.host_url, " to " + node_address)
 
     if not node_address:
         return "Invalid data", 400
@@ -112,17 +95,17 @@ def register_with_existing_node():
 
     # Make a request to register with remote node and obtain information
     response = requests.post(node_address + "/register_node",
-                             data=json.dumps(data), headers=headers)
+                             data=json.dumps(data),
+                             headers=headers)
 
     if response.status_code == 200:
 
         global blockchain
-        global peers
 
         # update chain and the peers
-        chain_dump = response.json()['chain']
+        chain_dump = response.json()
         blockchain = create_chain_from_dump(chain_dump)
-        peers.update(response.json()['peers'])
+        peers.update(response.json()["peers"])
 
         return "Registration successful", 200
     else:
@@ -131,26 +114,29 @@ def register_with_existing_node():
 
 
 def create_chain_from_dump(chain_dump):
-
     generated_blockchain = Blockchain()
     generated_blockchain.create_genesis_block()
+    print("Creating chain....")
 
-    for idx, block_data in enumerate(chain_dump):
+    for idx, block_data in enumerate(chain_dump["blocks"]):
 
         if idx == 0:
-            continue  # skip genesis block
+            continue
 
-        block = Block(block_data["index"],
-                      block_data["transactions"],
-                      block_data["timestamp"],
-                      block_data["previous_hash"],
-                      block_data["nonce"])
+        # index: int, transactions: list, previous_hash: str, nonce: int = 0):
+        block = Block(index=idx,
+                      transactions=block_data["transactions"],
+                      previous_hash=block_data["previous_hash"],
+                      nonce=block_data["nonce"])
 
-        proof = block_data['hash']
+        hash = block_data["hash"]
+        block.data = block_data["data"]
+        try:
+            generated_blockchain.add_block(block, hash)
+        except Exception as e:
+            print(e)
+            return None
 
-        added = generated_blockchain.add_block(block, proof)
-        if not added:
-            raise Exception("The chain dump is tampered!!")
     return generated_blockchain
 
 
@@ -225,7 +211,26 @@ def announce_new_block(block):
                       data=json.dumps(block.__dict__, sort_keys=True),
                       headers=headers)
 
+# endpoint to request the node to mine the unconfirmed
+# transactions (if any). We'll be using it to initiate
+# a command to mine from our application itself.
+@app.route('/mine', methods=['GET'])
+def mine_unconfirmed_transactions():
 
+    result = blockchain.mine()
+
+    if not result:
+        return "No transactions to mine"
+    else:
+        # Making sure we have the longest chain before announcing to the network
+        chain_length = len(blockchain.chain)
+        consensus()
+
+        if chain_length == len(blockchain.chain):
+            # announce the recently mined block to the network
+            announce_new_block(blockchain.last_block)
+
+        return "Block #{} is mined.".format(blockchain.last_block.index)
 
 # curl -X POST http://localhost:8000/new_transaction -H "Content-Type: application/json" -d "{\"author\":\"Test Value\", \"content\":\"Test Value\"}"
 # curl -X POST http://localhost:8001/register_with -H "Content-Type: application/json" -d "{\"node_address\":\"http://localhost:8000\"}"

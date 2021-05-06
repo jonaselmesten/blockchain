@@ -30,7 +30,11 @@ class Transaction(JsonSerializable):
 
     @classmethod
     def from_json(cls, json):
-
+        """
+        Create a tx-object from a JSON string.
+        @param json: JSON string.
+        @return: Transaction object.
+        """
         sender = serialization.load_pem_public_key(json["sender"].encode())
         receiver = serialization.load_pem_public_key(json["receiver"].encode())
 
@@ -59,7 +63,7 @@ class Transaction(JsonSerializable):
     def compute_transaction_id(self):
         """
         Computes the hash of this transaction.
-        @return: Sha hash string.
+        @return: SHA-hash string.
         """
         transaction_string = json.dumps(self.__dict__, default=str)
         return sha256(transaction_string.encode()).hexdigest()
@@ -85,9 +89,9 @@ class Transaction(JsonSerializable):
         return total
 
     def serialize(self):
-        return json.dumps({"sender": public_key_to_string(self.sender),
-                           "receiver": public_key_to_string(self.receiver),
-                           "time_stamp": self.time_stamp,
-                           "amount": str(self.amount),
-                           "signature": str(self.signature.hex())
-                           }, indent=4)
+        return json.loads(json.dumps({"sender": public_key_to_string(self.sender),
+                                      "receiver": public_key_to_string(self.receiver),
+                                      "time_stamp": self.time_stamp,
+                                      "amount": str(self.amount),
+                                      "signature": str(self.signature.hex())
+                                      }, default=JsonSerializable.dumper, indent=4))

@@ -1,7 +1,7 @@
 import hashlib
 
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives._serialization import Encoding, PublicFormat
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.serialization import PublicFormat, Encoding
 from cryptography.hazmat.primitives.asymmetric import ec
 
 signature_algorithm = ec.ECDSA(hashes.SHA256())

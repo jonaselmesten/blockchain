@@ -1,7 +1,7 @@
 import sys
 from time import time
 
-from cryptography.hazmat.primitives._serialization import Encoding, PublicFormat
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 import hash_util
 from transaction.tx import Transaction

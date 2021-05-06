@@ -18,15 +18,23 @@ class Block:
         self.index = index
         self.transactions = transactions
         self.data = {}
-        self.timestamp = time.time()
         self.previous_hash = previous_hash
         self.nonce = nonce
+        self.hash = ""
 
     def compute_hash(self) -> str:
         block_string = json.dumps(self.__dict__, default=JsonSerializable.dumper)
         return sha256(block_string.encode()).hexdigest()
 
+    def __str__(self):
+        string = \
+            "Index:" + str(self.index) + "\n" + \
+            "Transactions:" + str(len(self.transactions)) + "\n" \
+            "Block hash:" + self.hash + "\n" + \
+            "Previous hash:" + self.previous_hash + "\n" + \
+            "Data:" + str(self.data)
 
+        return string
 
 
 

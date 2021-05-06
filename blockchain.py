@@ -4,7 +4,6 @@ from sys import getsizeof
 import hash_util
 from block import Block
 from hash_util import public_key_to_string
-from transaction.tx import Transaction
 from transaction.tx_output import TransactionOutput
 from wallet.wallet import Wallet
 
@@ -34,14 +33,17 @@ class Blockchain:
         for tx_output in self.unspent_tx.values():
             print(hash_util.public_key_to_string(tx_output.recipient)[0:6], " - ", tx_output.amount)
 
-    def create_genesis_block(self, first_wallet):
-        amount = 10000
-        genesis_tx = Transaction(self.coinbase.public_key, first_wallet.public_key, amount, [])
-        genesis_block = Block(0, [genesis_tx], "0")
+    def create_genesis_block(self, first_wallet=None):
+        amount = 21000000
+        genesis_block = Block(0, [], "0")
         genesis_block.hash = genesis_block.compute_hash()
-        tx_output = TransactionOutput(first_wallet.public_key, amount, "0")
-        self.unspent_tx[tx_output.tx_id] = tx_output
+
+        if first_wallet is not None:
+            tx_output = TransactionOutput(first_wallet.public_key, amount, "0")
+            self.unspent_tx[tx_output.tx_id] = tx_output
+
         self.chain.append(genesis_block)
+
 
     @property
     def last_block(self):
@@ -55,15 +57,15 @@ class Blockchain:
         * The previous_hash referred in the block and the hash of latest block
           in the chain match.
         """
-        previous_hash = self.last_block.hash
 
-        if previous_hash != block.previous_hash:
+        if self.last_block.hash != block.previous_hash:
             return False
 
         if not Blockchain.is_valid_proof(block, proof):
-            return False
+            raise Exception("Chain not valid! - Block:", block.index)
 
         block.hash = proof
+
         self.chain.append(block)
         return True
 

@@ -3,6 +3,7 @@ import time
 from hashlib import sha256
 from time import time
 
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 
 from hash_util import public_key_to_string, signature_algorithm
@@ -65,17 +66,16 @@ class Transaction(JsonSerializable):
         Computes the hash of this transaction.
         @return: SHA-hash string.
         """
-        transaction_string = json.dumps(self.__dict__, default=str)
-        return sha256(transaction_string.encode()).hexdigest()
+        self.tx_id = sha256(self.get_sign_data().encode()).hexdigest()
 
     def is_valid(self):
         """
         Verify that this tx is valid with the creators signature and the relevant data in the tx.
         The signature is made by the tx creator.
-        @return:
+        Throws exception if not valid.
         """
         self.sender.verify(self.signature, bytes(self.get_sign_data(), "utf-8"), signature_algorithm)
-        return True
+
 
     def get_inputs_value(self):
         total = 0

@@ -15,7 +15,7 @@ host_address = None
 peers = set()
 
 blockchain = Blockchain()
-start_wallet = Wallet(["jonas", "jonas", "jonas", "jonas", "jonas"], blockchain)
+start_wallet = Wallet(["start", "start", "start", "start", "start"], blockchain)
 blockchain.create_genesis_block(start_wallet)
 
 
@@ -60,6 +60,8 @@ def blockchain_to_json():
 
     return json.dumps({"length": len(chain_data),
                        "blocks": chain_data,
+                       "data": blockchain.data,
+                       "utxo": blockchain.unspent_tx,
                        "peers": peer_list},
                       default=JsonSerializable.dumper,
                       indent=4)
@@ -189,6 +191,9 @@ def create_chain_from_dump(chain_dump):
     generated_blockchain.create_genesis_block()
     print("Creating chain....")
 
+    generated_blockchain.data = chain_dump["data"]
+    generated_blockchain.unspent_tx = chain_dump["utxo"]
+
     for idx, block_data in enumerate(chain_dump["blocks"]):
 
         if idx == 0:
@@ -200,10 +205,10 @@ def create_chain_from_dump(chain_dump):
                       previous_hash=block_data["previous_hash"],
                       nonce=block_data["nonce"])
 
-        hash = block_data["hash"]
+        block_hash = block_data["hash"]
         block.data = block_data["data"]
         try:
-            generated_blockchain.add_block(block, hash)
+            generated_blockchain.add_block(block, block_hash)
         except Exception as e:
             print(e)
             return None
@@ -301,7 +306,3 @@ def mine_unconfirmed_transactions():
 
         return "Block #{} is mined.".format(blockchain.last_block.index)
 
-# curl -X POST http://localhost:8000/new_transaction -H "Content-Type: application/json" -d "{\"author\":\"Test Value\", \"content\":\"Test Value\"}"
-# curl -X POST http://localhost:8001/register_with -H "Content-Type: application/json" -d "{\"node_address\":\"http://localhost:8000\"}"
-# curl -X GET http://localhost:8001/chain
-# curl -X GET http://localhost:8001/peers

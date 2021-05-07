@@ -1,15 +1,17 @@
 import sys
 from sys import getsizeof
 
+from cryptography.exceptions import InvalidSignature
+
 import hash_util
 from block import Block
 from hash_util import public_key_to_string
+from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
 from wallet.wallet import Wallet
 
 
 class Blockchain:
-
     difficulty = 2
 
     def __init__(self):
@@ -17,7 +19,7 @@ class Blockchain:
         self.unconfirmed_transactions = []
         self.chain = []
         self.data = {}
-        self.coinbase = Wallet(["ss", "jonas", "jonas", "jonas", "jonasdas"], self)
+        self.coinbase = Wallet(["genesis", "genesis", "genesis", "genesis", "genesis"], self)
 
     def print_data(self, wallet_public_key):
 
@@ -43,7 +45,6 @@ class Blockchain:
             self.unspent_tx[tx_output.tx_id] = tx_output
 
         self.chain.append(genesis_block)
-
 
     @property
     def last_block(self):
@@ -86,7 +87,6 @@ class Blockchain:
 
     def add_new_transaction(self, transaction):
 
-
         if transaction is None:
             print("No transaction to add")
             return
@@ -95,7 +95,6 @@ class Blockchain:
             self.unconfirmed_transactions.append(transaction)
         else:
             print("Transaction could not be processed")
-
 
     def add_new_data(self, transaction, data):
         pass
@@ -139,40 +138,62 @@ class Blockchain:
         return iter(self.chain)
 
     def process_tx(self, transaction):
+        """
 
-        # Verify transaction
-        if not transaction.is_valid():
-            print("Transaction signature failed to verify")
-            return False
+        @param transaction:
+        @return: True if processed.
+        """
+        try:
+            transaction.is_valid()
 
-        # Gather all tx-inputs from block chain
-        for tx_input in transaction.tx_inputs:
-            tx_input.tx_output = self.unspent_tx[tx_input.tx_output_id]
+            # Gather all tx-inputs from block chain
+            for tx_input in transaction.tx_inputs:
+                tx_input.tx_output = self.unspent_tx[tx_input.tx_output_id]
 
-        left_over = transaction.get_inputs_value() - transaction.amount
+            left_over = transaction.get_inputs_value() - transaction.amount
 
-        if left_over < 0:
-            print("Not enough funds")
-            return False
+            if left_over < 0:
+                raise NotEnoughFundsException
 
-        transaction.tx_id = transaction.compute_transaction_id()
-        transaction.tx_outputs.append(TransactionOutput(transaction.receiver, transaction.amount, transaction.tx_id))
-        transaction.tx_outputs.append(TransactionOutput(transaction.sender, left_over, transaction.tx_id))
+            transaction.compute_transaction_id()
 
-        # Add tx-outputs to blockchain
-        for tx_output in transaction.tx_outputs:
-            self.unspent_tx[tx_output.tx_id] = tx_output
+            # Create TXO for receiver and left over amount to sender.
+            txo_1, txo_2 = self._create_leftover_txo(transaction, left_over)
 
-        # Remove tx:s as spent
+            transaction.tx_outputs.append(txo_1)
+            transaction.tx_outputs.append(txo_2)
+
+            # Add tx-outputs to blockchain
+            self._add_txo_to_blockchain(transaction)
+            # Remove txo:s as spent
+            self._remove_spent_txo(transaction)
+
+        except InvalidSignature as e:
+            print("Invalid signature - Transaction failed.")
+        except NotEnoughFundsException as e:
+            print("Not enough funds - Transaction failed.")
+
+        return True
+
+    def _create_leftover_txo(self, transaction, left_over):
+        txo_1 = TransactionOutput(transaction.receiver,
+                                  transaction.amount,
+                                  transaction.tx_id)
+        txo_2 = TransactionOutput(transaction.sender,
+                                  left_over,
+                                  transaction.tx_id)
+        return txo_1, txo_2
+
+    def _remove_spent_txo(self, transaction):
         for tx_input in transaction.tx_inputs:
             if tx_input.tx_output is None:
                 continue
             else:
                 del self.unspent_tx[tx_input.tx_output.tx_id]
 
-
-
-        return True
+    def _add_txo_to_blockchain(self, transaction):
+        for tx_output in transaction.tx_outputs:
+            self.unspent_tx[tx_output.tx_id] = tx_output
 
     def add_new_data_transaction(self, data_tx):
 
@@ -184,7 +205,6 @@ class Blockchain:
             self.unconfirmed_transactions.append(data_tx)
         else:
             print("Transaction could not be processed")
-
 
     def process_data_tx(self, data_tx):
 
@@ -234,7 +254,6 @@ class Blockchain:
         print("Wrote data to blockchain")
         return True
 
-
     def mine(self):
         """
         This function serves as an interface to add the pending
@@ -258,4 +277,3 @@ class Blockchain:
         print("Block mined:", len(self.chain))
 
         return True
-

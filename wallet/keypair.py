@@ -2,22 +2,36 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
 
 class KeyPair:
     _curve = ec.SECP384R1()
     _signature_algorithm = ec.ECDSA(hashes.SHA256())
 
-    def __init__(self, word_list):
+    def __init__(self, private_key, public_key):
         """
         Creates a key pair from a given seed phrase.
         @param word_list: List of words used to create private key.
         """
-        self.private_key = ec.derive_private_key(self.generate_private_number(word_list),
-                                                 self._curve,
-                                                 default_backend())
-        self.public_key = self.private_key.public_key()
+        self.private_key = private_key
+        self.public_key = public_key
 
+    @classmethod
+    def from_seed_phrase(cls, word_list):
+        private_key = ec.derive_private_key(cls.generate_private_number(word_list),
+                                            KeyPair._curve,
+                                            default_backend())
+        public_key = private_key.public_key()
+        return KeyPair(private_key, public_key)
+
+    @classmethod
+    def from_file(cls, key_file):
+        with open(key_file, "rb") as key_file:
+            pem_lines = key_file.read()
+        private_key = load_pem_private_key(pem_lines, None, default_backend())
+        public_key = private_key.public_key()
+        return KeyPair(private_key, public_key)
 
     def public_key(self):
         return self.public_key
@@ -43,7 +57,8 @@ class KeyPair:
         except InvalidSignature:
             return False
 
-    def generate_private_number(self, word_list):
+    @staticmethod
+    def generate_private_number(word_list):
         """
         Generates a private number given a word list.
         This number can then be used to create a specific private key.
@@ -61,7 +76,7 @@ class KeyPair:
                 value += ord(char)
                 value *= ord(char)
 
-        while value < 1000000000000000000000000000000000000000000000000000000000000:
+        while value < 10000000000000000000000000:
             value *= 44
 
         return value

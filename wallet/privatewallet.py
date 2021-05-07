@@ -1,7 +1,7 @@
 import sys
 from time import time
 
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+from cryptography.hazmat.primitives import serialization
 
 import hash_util
 from transaction.tx import Transaction
@@ -10,24 +10,22 @@ from transaction.tx_input import TransactionInput
 from wallet.keypair import KeyPair
 
 
-class Wallet:
+class PrivateWallet:
 
-    def __init__(self, word_list, blockchain):
-        self.key_pair = KeyPair(word_list)
-        self.blockchain = blockchain
+    def __init__(self, word_list=None, key_file=None):
+        if word_list:
+            self.key_pair = KeyPair.from_seed_phrase(word_list)
+        elif key_file:
+            self.key_pair = KeyPair.from_file(key_file)
         self.unspent_tx = {}
+
+    @classmethod
+    def from_file(cls, wallet_file):
+        pass
 
     @property
     def public_key(self):
         return self.key_pair.public_key
-
-    def public_key_str(self):
-        """
-        Create a byte-string from the public key.
-        @return: Public key as string.
-        """
-        return self.key_pair.public_key.public_bytes(encoding=Encoding.PEM,
-                                                     format=PublicFormat.SubjectPublicKeyInfo).decode()
 
     def sign_transaction(self, transaction):
         sign_data = transaction.get_sign_data()
@@ -103,3 +101,36 @@ class Wallet:
             del self.unspent_tx[tx_input.tx_output_id]
 
         return new_tx
+
+    def save_as_file(self):
+        """
+        Save this wallets' private key as a file.
+        """
+        with open("key.txt", "wb") as key_file:
+            private_key = self.key_pair.private_key
+            print("Key size:", sys.getsizeof(private_key))
+            pem = private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+            key_file.write(pem)
+
+    @classmethod
+    def from_file(cls, key_file):
+        """
+        Read your wallet from a file.
+        @param wallet_file: Key-file.
+        @return: PrivateWallet object.
+        """
+        return PrivateWallet(key_file=key_file)
+
+    @classmethod
+    def from_seed_phrase(cls, words):
+        """
+        Read your wallet from a file.
+        @param wallet_file: Key-file.
+        @return: PrivateWallet object.
+        """
+        return PrivateWallet(word_list=words)
+

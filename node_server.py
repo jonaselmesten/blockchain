@@ -2,12 +2,13 @@ import json
 import time
 
 import requests
+from cryptography.hazmat.primitives import serialization
 from flask import Flask, request
 
 from block import Block
 from blockchain import Blockchain
 from serialize import JsonSerializable
-from wallet.wallet import Wallet
+from wallet.privatewallet import PrivateWallet
 
 app = Flask(__name__)
 
@@ -15,7 +16,7 @@ host_address = None
 peers = set()
 
 blockchain = Blockchain()
-start_wallet = Wallet(["start", "start", "start", "start", "start"], blockchain)
+start_wallet = PrivateWallet().from_seed_phrase(["a", "a", "a", "a", "a"])
 blockchain.create_genesis_block(start_wallet)
 
 
@@ -65,6 +66,19 @@ def blockchain_to_json():
                        "peers": peer_list},
                       default=JsonSerializable.dumper,
                       indent=4)
+
+
+@app.route('/wallet_balance', methods=['GET'])
+def get_balance():
+
+    total = 0
+    public_key = request.args.get("public_key")
+
+    for tx_hash, tx_output in blockchain.unspent_tx.items():
+        if tx_output.is_mine(public_key):
+            total += tx_output.amount
+
+    return json.dumps({"balance": total})
 
 
 @app.route('/peers', methods=['GET'])

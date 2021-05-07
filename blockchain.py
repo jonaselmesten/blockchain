@@ -8,7 +8,7 @@ from block import Block
 from hash_util import public_key_to_string
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
-from wallet.wallet import Wallet
+from wallet.privatewallet import PrivateWallet
 
 
 class Blockchain:
@@ -19,7 +19,7 @@ class Blockchain:
         self.unconfirmed_transactions = []
         self.chain = []
         self.data = {}
-        self.coinbase = Wallet(["genesis", "genesis", "genesis", "genesis", "genesis"], self)
+        self.coinbase = PrivateWallet(["genesis", "genesis", "genesis", "genesis", "genesis"], self)
 
     def print_data(self, wallet_public_key):
 

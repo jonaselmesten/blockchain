@@ -26,7 +26,8 @@ class TransactionOutput(JsonSerializable):
         @param public_key:
         @return:
         """
-        return self.recipient is public_key
+
+        return public_key_to_string(self.recipient) == public_key
 
     def serialize(self):
         return json.loads(json.dumps({"recipient": public_key_to_string(self.recipient),

@@ -1,0 +1,7 @@
+#!/bin/bash
+
+echo "Opening wallet"
+
+export FLASK_APP=wallet/network_wallet.py
+
+

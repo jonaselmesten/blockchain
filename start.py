@@ -5,7 +5,7 @@ from block import Block
 from blockchain import Blockchain
 from serialize import JsonSerializable
 from transaction.tx import Transaction
-from wallet.wallet import Wallet
+from wallet.privatewallet import PrivateWallet
 
 
 def print_wallets():
@@ -17,9 +17,9 @@ def print_wallets():
 
 blockchain = Blockchain()
 
-wallet1 = Wallet(["jonas", "jonas", "jonas", "jonas", "jonas"], blockchain)
-wallet2 = Wallet(["ss", "jonas", "jonas", "jonas", "jonas"], blockchain)
-wallet3 = Wallet(["sd22ds", "jonas", "jonas", "jonas", "jonas"], blockchain)
+wallet1 = PrivateWallet(["jonas", "jonas", "jonas", "jonas", "jonas"], blockchain)
+wallet2 = PrivateWallet(["ss", "jonas", "jonas", "jonas", "jonas"], blockchain)
+wallet3 = PrivateWallet(["sd22ds", "jonas", "jonas", "jonas", "jonas"], blockchain)
 
 blockchain.create_genesis_block(wallet1)
 blockchain.mine()

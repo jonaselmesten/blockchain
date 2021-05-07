@@ -11,20 +11,24 @@ from wallet.wallet import Wallet
 
 app = Flask(__name__)
 
-# the address to other participating members of the network
+host_address = None
 peers = set()
 
-# the node's copy of blockchain
 blockchain = Blockchain()
 start_wallet = Wallet(["jonas", "jonas", "jonas", "jonas", "jonas"], blockchain)
 blockchain.create_genesis_block(start_wallet)
+
+
+@app.before_first_request
+def set_host_address():
+    global host_address
+    host_address = request.host_url
 
 
 # endpoint to submit a new transaction. This will be used by
 # our application to add new data (posts) to the blockchain
 @app.route('/new_transaction', methods=['POST'])
 def new_transaction():
-
     tx_data = request.get_json()
 
     required_fields = ["author", "content"]
@@ -45,23 +49,36 @@ def new_transaction():
 # all the posts to display.
 @app.route('/chain', methods=['GET'])
 def blockchain_to_json():
-
+    print("Preparing blockchain JSON...")
     chain_data = []
 
     for block in blockchain.chain:
         chain_data.append(block.__dict__)
 
+    peer_list = [host_address]
+    peer_list.extend(list(peers))
+
     return json.dumps({"length": len(chain_data),
                        "blocks": chain_data,
-                       "peers": list(peers)},
+                       "peers": peer_list},
                       default=JsonSerializable.dumper,
                       indent=4)
+
+
+@app.route('/peers', methods=['GET'])
+def get_node_peers():
+    return json.dumps({"peers": list(peers)}, indent=4)
 
 
 # endpoint to add new peers to the network.
 @app.route('/register_node', methods=['POST'])
 def register_new_peers():
+    # När man ansluter ny node:
+    # 1: Lägg till sin egen URL i anslutnings nod
+    # 2: Tar emot nodens alla peers, lägg till i egna
+    # 3: NOD: Skicka nya addressen till alla egna
 
+    # Address of new node in the network.
     node_address = request.get_json()["node_address"]
 
     if not node_address:
@@ -70,11 +87,41 @@ def register_new_peers():
     # Add the node to the peer list
     peers.add(node_address)
     print("New node registered:", node_address)
-    print("Number of peers:", len(peers))
+    print("Peers:", peers)
 
     # Return the consensus blockchain to the newly registered node
     # so that he can sync
     return blockchain_to_json()
+
+# endpoint to add new peers to the network.
+@app.route('/add_node_address', methods=['POST'])
+def register_new_node():
+    node_address = request.get_json()["node_address"]
+    peers.add(node_address)
+    return "New node added", 200
+
+@app.route('/remove_node', methods=['POST'])
+def remove_node_from_network():
+    # Address of node to remove from the network.
+    node_address = request.get_json()["node_address"]
+
+    if not node_address:
+        return "Invalid data", 400
+
+    # Add the node to the peer list
+    peers.remove(node_address)
+    headers = {'Content-Type': "application/json"}
+
+    for node in peers:
+
+        if node == host_address:
+            continue
+
+        response = requests.post(node_address + "/remove_node",
+                                 data=json.dumps(node),
+                                 headers=headers)
+        if response.status_code == 200:
+            print("Removed ", node_address, " from ", node)
 
 
 @app.route('/register_with', methods=['POST'])
@@ -85,12 +132,12 @@ def register_with_existing_node():
     request, and sync the blockchain as well as peer data.
     """
     node_address = request.get_json()["node_address"]
-    print("Register " + request.host_url, " to " + node_address)
+    print("Register " + host_address, " to " + node_address)
 
     if not node_address:
         return "Invalid data", 400
 
-    data = {"node_address": request.host_url}
+    data = {"node_address": host_address}
     headers = {'Content-Type': "application/json"}
 
     # Make a request to register with remote node and obtain information
@@ -102,10 +149,34 @@ def register_with_existing_node():
 
         global blockchain
 
-        # update chain and the peers
-        chain_dump = response.json()
-        blockchain = create_chain_from_dump(chain_dump)
-        peers.update(response.json()["peers"])
+        try:
+            # update chain and the peers
+            chain_dump = response.json()
+            blockchain = create_chain_from_dump(chain_dump)
+
+            for node in response.json()["peers"]:
+                if node != host_address:
+                    peers.add(node)
+
+            print("Peers:", peers)
+        except Exception as e:
+
+            while True:
+                # Failed to create chain - remove from peers.
+                response = requests.post(node_address + "/remove_node",
+                                         data=json.dumps(data),
+                                         headers=headers)
+
+                if response.status_code == 200:
+                    return "Removal of node successful", 200
+        else:
+
+            for node in peers:
+                if node != host_address or node != node_address:
+                    response = requests.post(node + "/add_node_address",
+                                             data=json.dumps(data),
+                                             headers=headers)
+
 
         return "Registration successful", 200
     else:
@@ -145,7 +216,6 @@ def create_chain_from_dump(chain_dump):
 # and then added to the chain.
 @app.route('/add_block', methods=['POST'])
 def verify_and_add_block():
-
     block_data = request.get_json()
 
     block = Block(block_data["index"],
@@ -203,7 +273,6 @@ def announce_new_block(block):
     respective chains.
     """
     for peer in peers:
-
         url = "{}add_block".format(peer)
         headers = {'Content-Type': "application/json"}
 
@@ -211,12 +280,12 @@ def announce_new_block(block):
                       data=json.dumps(block.__dict__, sort_keys=True),
                       headers=headers)
 
+
 # endpoint to request the node to mine the unconfirmed
 # transactions (if any). We'll be using it to initiate
 # a command to mine from our application itself.
 @app.route('/mine', methods=['GET'])
 def mine_unconfirmed_transactions():
-
     result = blockchain.mine()
 
     if not result:
@@ -235,3 +304,4 @@ def mine_unconfirmed_transactions():
 # curl -X POST http://localhost:8000/new_transaction -H "Content-Type: application/json" -d "{\"author\":\"Test Value\", \"content\":\"Test Value\"}"
 # curl -X POST http://localhost:8001/register_with -H "Content-Type: application/json" -d "{\"node_address\":\"http://localhost:8000\"}"
 # curl -X GET http://localhost:8001/chain
+# curl -X GET http://localhost:8001/peers

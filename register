@@ -1,0 +1,17 @@
+#!/bin/bash
+
+echo "Register nodes"
+
+curl -X POST http://localhost:8000/register_with -H "Content-Type: application/json" -d "{\"node_address\":\"http://localhost:8001\"}"
+curl -X POST http://localhost:8002/register_with -H "Content-Type: application/json" -d "{\"node_address\":\"http://localhost:8000\"}"
+curl -X POST http://localhost:8003/register_with -H "Content-Type: application/json" -d "{\"node_address\":\"http://localhost:8000\"}"
+
+
+echo "Node 8000:"
+curl -X GET http://localhost:8000/peers
+echo "Node 8001"
+curl -X GET http://localhost:8001/peers
+echo "Node 8002"
+curl -X GET http://localhost:8002/peers
+echo "Node 8003"
+curl -X GET http://localhost:8003/peers

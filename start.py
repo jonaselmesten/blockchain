@@ -1,91 +1,126 @@
 import json
+import random
 
 import hash_util
-from block import Block
-from blockchain import Blockchain
+from chain.block import Block
+from chain.blockchain import Blockchain
+from chain.exceptions import BlockHashError
+from chain.header import BlockHeader
+from hash_util import public_key_to_string, apply_sha256
 from serialize import JsonSerializable
-from transaction.tx import Transaction
+from transaction.tx_output import TransactionOutput
 from wallet.privatewallet import PrivateWallet
 
 
-def print_wallets():
-    print("")
-    print("Wallet 1", hash_util.public_key_to_string(wallet1.public_key)[0:6], wallet1.get_balance())
-    print("Wallet 2", hash_util.public_key_to_string(wallet2.public_key)[0:6], wallet2.get_balance())
-    print("Wallet 3", hash_util.public_key_to_string(wallet3.public_key)[0:6], wallet3.get_balance())
+def copy_of_utxo(unspent):
+    utxo = set()
+    for ut in unspent:
+        copy_of = TransactionOutput(ut.recipient, ut.amount, ut.parent_tx_id, ut.vout)
+        utxo.add(copy_of)
+    return utxo
 
+
+wallet1 = PrivateWallet(["jonas", "jonas", "jonas", "jonas", "jonas"])
+wallet2 = PrivateWallet(["ss", "jonas", "jon1221as", "jon1212as", "jonas"])
+wallet3 = PrivateWallet(["sd22ds", "jonas", "jonas", "jo1nas", "jon22as"])
+wallet4 = PrivateWallet(["sd2awd2ds", "jonas", "jonas", "jonas", "jon23as"])
+wallet5 = PrivateWallet(["sd22ds", "jond2as", "jonas", "jonas", "jon2as"])
+wallet6 = PrivateWallet(["sd22ds", "jonas", "jo123nas", "jonas", "jo12213nas"])
+wallet7 = PrivateWallet(["sd22ds", "jona1w3s", "jonas", "jonas", "jonas"])
+wallet8 = PrivateWallet(["sd22ds", "jonas", "jond1was", "jonas", "jo1221nas"])
+wallet9 = PrivateWallet(["sd223322ds", "jon233as", "jonas", "jonas", "jonas"])
+wallet10 = PrivateWallet(["sd22ds", "jon11as", "jond1was", "jonas", "jonas"])
+
+wallets = [wallet1, wallet2]
 
 blockchain = Blockchain()
-
-wallet1 = PrivateWallet(["jonas", "jonas", "jonas", "jonas", "jonas"], blockchain)
-wallet2 = PrivateWallet(["ss", "jonas", "jonas", "jonas", "jonas"], blockchain)
-wallet3 = PrivateWallet(["sd22ds", "jonas", "jonas", "jonas", "jonas"], blockchain)
-
 blockchain.create_genesis_block(wallet1)
-blockchain.mine()
-
-value = 111.0
-
-blockchain.add_new_transaction(wallet1.send_funds(wallet2.public_key, 111.2))
-blockchain.add_new_transaction(wallet1.send_funds(wallet2.public_key, 44.2))
-blockchain.add_new_transaction(wallet1.send_funds(wallet2.public_key, 44.2))
-
-def json_to_str_and_back():
-    tx_json = json.dumps(tx, default=JsonSerializable.dumper, indent=4)
-    tx_json = json.loads(tx_json)
-    print(tx_json)
-    tx_json = json.loads(tx_json)
-    tx_new = Transaction.from_json(tx_json)
-    tx_new.is_valid()
+wallet1.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
 
 
-def blockchain_to_json(blockchain):
+def a_to_b():
+    amount = random.randint(1, 100)
+    blockchain.process_tx(wallet1.prepare_tx(wallet2.pk_str, amount))
+    blockchain.mine()
+
+    wallet1.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
+    wallet2.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
+    print("Balance 1:", wallet1.get_balance())
+    print("Balance 2:", wallet2.get_balance())
+
+def b_to_a():
+    amount = random.randint(1, 100)
+    blockchain.process_tx(wallet2.prepare_tx(wallet1.pk_str, amount))
+    blockchain.mine()
+
+    wallet1.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
+    wallet2.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
+    print("Balance 1:", wallet1.get_balance())
+    print("Balance 2:", wallet2.get_balance())
+
+
+a_to_b()
+
+
+
+def blockchain_to_json():
+    """
+    Creates a copy of the blockchain in JSON.
+    Also sends UTXO and all known peers.
+    @return: JSON dump.
+    """
     chain_data = []
-    print("-----GET CHAIN--------")
+
     for block in blockchain.chain:
         chain_data.append(block.__dict__)
 
     return json.dumps({"length": len(chain_data),
-                       "blocks": chain_data}, default=JsonSerializable.dumper, indent=4)
-
-
-blockchain.mine()
+                       "blocks": chain_data,
+                       "data": blockchain.data,
+                       "utxo": blockchain.unspent_tx},
+                      default=JsonSerializable.dumper,
+                      indent=4)
 
 
 def create_chain_from_dump(chain_dump):
+    """
+    Creates and validates a chain to be run on this node.
+    @param chain_dump: Chain dump as JSON.
+    @return: Generated blockchain.
+    """
     generated_blockchain = Blockchain()
     generated_blockchain.create_genesis_block()
-    print("-----CREATE CHAIN--------")
+
+    generated_blockchain.data = chain_dump["data"]
+    generated_blockchain.unspent_tx = chain_dump["utxo"]
 
     for idx, block_data in enumerate(chain_dump["blocks"]):
 
         if idx == 0:
             continue
 
-        # index: int, transactions: list, previous_hash: str, nonce: int = 0):
+        header_data = block_data["header"]
+
+        header = BlockHeader.from_json(
+            header_data["previous_block_hash"],
+            header_data["merkle_root"],
+            header_data["time_stamp"],
+            header_data["nonce"]
+        )
+
         block = Block(index=idx,
                       transactions=block_data["transactions"],
-                      previous_hash=block_data["previous_hash"],
-                      nonce=block_data["nonce"])
-
-        hash = block_data["hash"]
+                      header=header)
+        block_hash = block_data["hash"]
         block.data = block_data["data"]
 
-        generated_blockchain.add_block(block, hash)
+        # Check that block is valid.
+        if block_hash == block.compute_hash():
+            generated_blockchain.chain.append(block_hash)
+        else:
+            raise BlockHashError()
 
     return generated_blockchain
 
-
-# 1: get_chain()
-# 2: chain_dump = response.json()['chain']
-# 3: blockchain = create_chain_from_dump(chain_dump)
-
-json_chain = blockchain_to_json(blockchain)
-gen_chain = create_chain_from_dump(json.loads(json_chain))
-
-print("----")
-for block in blockchain.chain:
-    print(block.compute_hash())
-print("----")
-for block in gen_chain.chain:
-    print(block.compute_hash())
+# response = blockchain_to_json()
+# blockchain = create_chain_from_dump(json.loads(response))

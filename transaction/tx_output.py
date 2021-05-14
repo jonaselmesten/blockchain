@@ -1,37 +1,37 @@
 import json
 
-from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
-
 from hash_util import apply_sha256, public_key_to_string
 from serialize import JsonSerializable
 
 
 class TransactionOutput(JsonSerializable):
 
-    def __init__(self, recipient: EllipticCurvePublicKey, amount, parent_tx_id):
-        """
-
-        @param recipient:
-        @param amount:
-        @param parent_tx_id:
-        """
+    def __init__(self, recipient, amount, parent_tx_id, vout):
         self.recipient = recipient
         self.amount = amount
         self.parent_tx_id = parent_tx_id
-        self.tx_id = apply_sha256(public_key_to_string(self.recipient) + str(self.amount) + self.parent_tx_id)
+        self.vout = vout
 
-    def is_mine(self, public_key):
-        """
-
-        @param public_key:
-        @return:
-        """
-
-        return public_key_to_string(self.recipient) == public_key
+    @classmethod
+    def fromDict(cls, json):
+        txo = TransactionOutput(json["recipient"],
+                                float(json["amount"]),
+                                json["parent_tx_id"])
+        txo.tx_id = json["tx_id"]
+        return txo
 
     def serialize(self):
-        return json.loads(json.dumps({"recipient": public_key_to_string(self.recipient),
+        return json.loads(json.dumps({"recipient": self.recipient,
                                       "amount": str(self.amount),
-                                      "parent_tx_id": self.parent_tx_id,
-                                      "tx_id": self.tx_id
+                                      "parent_tx_id": self.parent_tx_id
                                       }, default=JsonSerializable.dumper, indent=4))
+
+    def __hash__(self):
+        return hash(apply_sha256(self.recipient, self.amount, self.parent_tx_id, self.vout))
+
+    def __eq__(self, other):
+        return self.recipient == other.recipient \
+               and self.amount == other.amount \
+               and self.parent_tx_id == other.parent_tx_id \
+               and self.vout == other.vout
+

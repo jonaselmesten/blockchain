@@ -4,9 +4,12 @@ from time import time
 from cryptography.hazmat.primitives import serialization
 
 import hash_util
-from transaction.tx import Transaction
+from hash_util import public_key_to_string, apply_sha256
+from transaction.exceptions import NotEnoughFundsException
+from transaction.tx import TokenTX
 from transaction.tx_data import DataTransaction
 from transaction.tx_input import TransactionInput
+from transaction.tx_output import TransactionOutput
 from wallet.keypair import KeyPair
 
 
@@ -17,7 +20,8 @@ class PrivateWallet:
             self.key_pair = KeyPair.from_seed_phrase(word_list)
         elif key_file:
             self.key_pair = KeyPair.from_file(key_file)
-        self.unspent_tx = {}
+        self.unspent_tx = []
+        self.pk_str = public_key_to_string(self.public_key)
 
     @classmethod
     def from_file(cls, wallet_file):
@@ -36,16 +40,6 @@ class PrivateWallet:
     def verify_signature(self, signature, transaction):
         transaction_hash = transaction.compute_transaction_id()
         self.key_pair.verify_signature(signature, str.encode(transaction_hash))
-
-    def get_balance(self):
-        total = 0
-
-        for tx_hash, tx_output in self.blockchain.unspent_tx.items():
-            if tx_output.is_mine(self.public_key):
-                self.unspent_tx[tx_output.tx_id] = tx_output
-                total += tx_output.amount
-
-        return total
 
     def write_to_blockchain(self, data):
 
@@ -75,32 +69,44 @@ class PrivateWallet:
 
         return new_tx
 
-    def send_funds(self, recipient, amount):
-
-        if self.get_balance() < amount:
-            print(hash_util.public_key_to_string(self.public_key)[0:6], " - Not enough funds")
-            return
-
-        print(hash_util.public_key_to_string(self.public_key)[0:6],
-              " -> ", hash_util.public_key_to_string(recipient)[0:6], " Amount:", amount)
+    def prepare_tx(self, receiver, amount):
 
         tx_inputs = []
         total = 0
+        hashed_pk = apply_sha256(self.pk_str)
 
-        for tx_hash, tx_output in self.unspent_tx.items():
+        for tx_output in self.unspent_tx:
+
+            if tx_output.recipient != hashed_pk:
+                continue
+
             total += tx_output.amount
-            tx_inputs.append(TransactionInput(tx_output.tx_id))
+            tx_inputs.append(tx_output)
+            self.unspent_tx.remove(tx_output)
 
             if total > amount:
                 break
 
-        new_tx = Transaction(self.public_key, recipient, amount, tx_inputs)
+        if total < amount:
+            raise NotEnoughFundsException
+
+        # If tx is confirmed - we'll be guaranteed this UTXO.
+        new_tx = TokenTX(self.pk_str, receiver, amount, tx_inputs)
         self.sign_transaction(new_tx)
 
-        for tx_input in tx_inputs:
-            del self.unspent_tx[tx_input.tx_output_id]
-
         return new_tx
+
+    def get_balance(self):
+
+        total = 0
+        hashed_pk = apply_sha256(self.pk_str)
+
+        for tx_output in self.unspent_tx:
+            if tx_output.recipient == hashed_pk:
+                total += tx_output.amount
+
+        return total
+
 
     def save_as_file(self):
         """

@@ -2,11 +2,11 @@ import json
 import time
 
 import requests
-from cryptography.hazmat.primitives import serialization
 from flask import Flask, request
-
-from block import Block
-from blockchain import Blockchain
+from chain.block import Block
+from chain.blockchain import Blockchain
+from chain.exceptions import BlockHashError
+from chain.header import BlockHeader
 from serialize import JsonSerializable
 from wallet.privatewallet import PrivateWallet
 
@@ -16,7 +16,7 @@ host_address = None
 peers = set()
 
 blockchain = Blockchain()
-start_wallet = PrivateWallet().from_seed_phrase(["a", "a", "a", "a", "a"])
+start_wallet = PrivateWallet(word_list=["a", "a", "a", "a", "a"])
 blockchain.create_genesis_block(start_wallet)
 
 
@@ -26,10 +26,13 @@ def set_host_address():
     host_address = request.host_url
 
 
-# endpoint to submit a new transaction. This will be used by
-# our application to add new data (posts) to the blockchain
 @app.route('/new_transaction', methods=['POST'])
 def new_transaction():
+    # Before sending to other peers:
+    # TODO: Check TX before propagate.
+    # TODO: Check that UTXO's are unspent.
+    # TODO: Check dont't relay already seen TX.
+
     tx_data = request.get_json()
 
     required_fields = ["author", "content"]
@@ -45,12 +48,13 @@ def new_transaction():
     return "Success", 201
 
 
-# endpoint to return the node's copy of the chain.
-# Our application will be using this endpoint to query
-# all the posts to display.
 @app.route('/chain', methods=['GET'])
 def blockchain_to_json():
-    print("Preparing blockchain JSON...")
+    """
+    Creates a copy of the blockchain in JSON.
+    Also sends UTXO and all known peers.
+    @return: JSON dump.
+    """
     chain_data = []
 
     for block in blockchain.chain:
@@ -68,53 +72,36 @@ def blockchain_to_json():
                       indent=4)
 
 
-@app.route('/wallet_balance', methods=['GET'])
-def get_balance():
-
-    total = 0
-    public_key = request.args.get("public_key")
-
-    for tx_hash, tx_output in blockchain.unspent_tx.items():
-        if tx_output.is_mine(public_key):
-            total += tx_output.amount
-
-    return json.dumps({"balance": total})
-
-
 @app.route('/peers', methods=['GET'])
 def get_node_peers():
+    """
+    Get all peers addresses that this node is aware of.
+    @return: List of peers.
+    """
     return json.dumps({"peers": list(peers)}, indent=4)
 
 
-# endpoint to add new peers to the network.
 @app.route('/register_node', methods=['POST'])
 def register_new_peers():
-    # När man ansluter ny node:
-    # 1: Lägg till sin egen URL i anslutnings nod
-    # 2: Tar emot nodens alla peers, lägg till i egna
-    # 3: NOD: Skicka nya addressen till alla egna
-
     # Address of new node in the network.
     node_address = request.get_json()["node_address"]
 
     if not node_address:
-        return "Invalid data", 400
+        return "Need to specify node address", 400
 
     # Add the node to the peer list
     peers.add(node_address)
     print("New node registered:", node_address)
-    print("Peers:", peers)
 
-    # Return the consensus blockchain to the newly registered node
-    # so that he can sync
     return blockchain_to_json()
 
-# endpoint to add new peers to the network.
+
 @app.route('/add_node_address', methods=['POST'])
 def register_new_node():
     node_address = request.get_json()["node_address"]
     peers.add(node_address)
     return "New node added", 200
+
 
 @app.route('/remove_node', methods=['POST'])
 def remove_node_from_network():
@@ -143,15 +130,15 @@ def remove_node_from_network():
 @app.route('/register_with', methods=['POST'])
 def register_with_existing_node():
     """
-    Internally calls the `register_node` endpoint to
-    register current node with the node specified in the
-    request, and sync the blockchain as well as peer data.
+    Create and register a new node. This node will try to recreate a
+    copy of the consensus blockchain and then notify other peers in the network of its'
+    existence.
+    @return: HTTP status code of this action.
     """
     node_address = request.get_json()["node_address"]
-    print("Register " + host_address, " to " + node_address)
 
     if not node_address:
-        return "Invalid data", 400
+        return "Need to specify node address", 400
 
     data = {"node_address": host_address}
     headers = {'Content-Type': "application/json"}
@@ -161,12 +148,12 @@ def register_with_existing_node():
                              data=json.dumps(data),
                              headers=headers)
 
+    # Successful - Try to create local blockchain.
     if response.status_code == 200:
 
         global blockchain
 
         try:
-            # update chain and the peers
             chain_dump = response.json()
             blockchain = create_chain_from_dump(chain_dump)
 
@@ -174,36 +161,45 @@ def register_with_existing_node():
                 if node != host_address:
                     peers.add(node)
 
-            print("Peers:", peers)
-        except Exception as e:
+        except BlockHashError:
 
-            while True:
-                # Failed to create chain - remove from peers.
-                response = requests.post(node_address + "/remove_node",
-                                         data=json.dumps(data),
-                                         headers=headers)
+            # TODO: Make sure that node is not added to peers
+            #  before successful creation of local blockchain.
 
-                if response.status_code == 200:
-                    return "Removal of node successful", 200
+            # Failed to create chain - remove from peers.
+            response = requests.post(node_address + "/remove_node",
+                                     data=json.dumps(data),
+                                     headers=headers)
+
+            if response.status_code != 200:
+                # TODO: Handle failure of removal. Flooding?
+                pass
+
         else:
-
+            # Local chain creation successful - notify all peers in the network.
             for node in peers:
                 if node != host_address or node != node_address:
                     response = requests.post(node + "/add_node_address",
                                              data=json.dumps(data),
                                              headers=headers)
 
+                    if response.status_code != 200:
+                        # TODO: Handle failure of notification.
+                        pass
 
-        return "Registration successful", 200
+        return "Blockchain creation and registration successful", 200
     else:
-        # if something goes wrong, pass it on to the API response
         return response.content, response.status_code
 
 
 def create_chain_from_dump(chain_dump):
+    """
+    Creates and validates a chain to be run on this node.
+    @param chain_dump: Chain dump as JSON.
+    @return: Generated blockchain.
+    """
     generated_blockchain = Blockchain()
     generated_blockchain.create_genesis_block()
-    print("Creating chain....")
 
     generated_blockchain.data = chain_dump["data"]
     generated_blockchain.unspent_tx = chain_dump["utxo"]
@@ -213,19 +209,27 @@ def create_chain_from_dump(chain_dump):
         if idx == 0:
             continue
 
-        # index: int, transactions: list, previous_hash: str, nonce: int = 0):
+        header_data = block_data["header"]
+
+        header = BlockHeader.from_json(
+            header_data["previous_block_hash"],
+            header_data["merkle_root"],
+            header_data["time_stamp"],
+            header_data["nonce"]
+        )
+
         block = Block(index=idx,
                       transactions=block_data["transactions"],
-                      previous_hash=block_data["previous_hash"],
-                      nonce=block_data["nonce"])
-
+                      header=header)
         block_hash = block_data["hash"]
         block.data = block_data["data"]
-        try:
-            generated_blockchain.add_block(block, block_hash)
-        except Exception as e:
-            print(e)
-            return None
+
+        # Check that block is valid.
+        if block_hash == block.compute_hash():
+            generated_blockchain.chain.append(block)
+        else:
+            print("Block hash is not matching - ERROR")
+            raise BlockHashError()
 
     return generated_blockchain
 
@@ -235,6 +239,10 @@ def create_chain_from_dump(chain_dump):
 # and then added to the chain.
 @app.route('/add_block', methods=['POST'])
 def verify_and_add_block():
+    # TODO: 1: Validate block header.
+    # TODO: 2: Validate all TX.
+    # TODO: 3 Only forward a block if it builds on longest branch.
+
     block_data = request.get_json()
 
     block = Block(block_data["index"],
@@ -255,7 +263,7 @@ def verify_and_add_block():
 # endpoint to query unconfirmed transactions
 @app.route('/pending_tx')
 def get_pending_tx():
-    return json.dumps(blockchain.unconfirmed_transactions)
+    return json.dumps(blockchain.memory_pool)
 
 
 def consensus():
@@ -320,3 +328,20 @@ def mine_unconfirmed_transactions():
 
         return "Block #{} is mined.".format(blockchain.last_block.index)
 
+
+@app.route('/wallet_balance', methods=['GET'])
+def get_balance():
+    total = 0
+    public_key = request.args.get("public_key")
+    utxo = []
+
+    # Add all UTXO
+    for tx_hash, tx_output in blockchain.unspent_tx.items():
+        if tx_output.recipient == public_key:
+            total += tx_output.amount
+            utxo.append(tx_output)
+
+    return json.dumps({"balance": total,
+                       "utxo": utxo},
+                      default=JsonSerializable.dumper,
+                      indent=4)

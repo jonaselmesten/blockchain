@@ -1,7 +1,7 @@
 import json
 from hashlib import sha256
 
-from hash_util import public_key_to_string, signature_algorithm, apply_sha256
+from hash_util import public_key_to_string, _signature_algorithm, apply_sha256
 
 
 class DataTransaction:
@@ -27,7 +27,7 @@ class DataTransaction:
         return sha256(transaction_string.encode()).hexdigest()
 
     def is_valid(self):
-        self.sender.verify(self.signature, bytes(self.get_sign_data(), "utf-8"), signature_algorithm)
+        self.sender.verify(self.signature, bytes(self.get_sign_data(), "utf-8"), _signature_algorithm)
         return True
 
 

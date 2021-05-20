@@ -72,6 +72,7 @@ class PrivateWallet:
     def prepare_tx(self, receiver, amount):
 
         tx_inputs = []
+        tx_remove = []
         total = 0
         hashed_pk = apply_sha256(self.pk_str)
 
@@ -82,13 +83,16 @@ class PrivateWallet:
 
             total += tx_output.amount
             tx_inputs.append(tx_output)
-            self.unspent_tx.remove(tx_output)
+            tx_remove.append(tx_output)
 
             if total > amount:
                 break
 
         if total < amount:
             raise NotEnoughFundsException
+
+        for tx_output in tx_remove:
+            self.unspent_tx.remove(tx_output)
 
         # If tx is confirmed - we'll be guaranteed this UTXO.
         new_tx = TokenTX(self.pk_str, receiver, amount, tx_inputs)

@@ -21,6 +21,8 @@ public_key = public_key_to_string(wallet.public_key)
 receiver_wallet = PrivateWallet.from_seed_phrase(["wallet", "a", "a", "a", "a"])
 receiver_pk = public_key_to_string(receiver_wallet.public_key)
 
+# TODO: SPV Wallet
+" https://learnmeabitcoin.com/technical/merkle-root"
 def update_balance():
     payload = {"public_key": public_key}
     response = requests.get(blockchain_address + "/wallet_balance",

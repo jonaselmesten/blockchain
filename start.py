@@ -8,8 +8,16 @@ from chain.exceptions import BlockHashError
 from chain.header import BlockHeader
 from hash_util import public_key_to_string, apply_sha256
 from serialize import JsonSerializable
+from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
 from wallet.privatewallet import PrivateWallet
+
+wallet1 = PrivateWallet(["jonas", "jonas", "jonas", "jonas", "jonas"])
+wallets = [wallet1]
+words = ["jonas", "heter", "jag", "ju", "borde", "du", "asdasdasd", "dasdasda", "asda2111"]
+
+for i in range(1000):
+    wallets.append(PrivateWallet(["jonas", "jonas", "jonas", "jonas", str(i), words[random.randint(0, 8)]]))
 
 
 def copy_of_utxo(unspent):
@@ -20,47 +28,77 @@ def copy_of_utxo(unspent):
     return utxo
 
 
-wallet1 = PrivateWallet(["jonas", "jonas", "jonas", "jonas", "jonas"])
-wallet2 = PrivateWallet(["ss", "jonas", "jon1221as", "jon1212as", "jonas"])
-wallet3 = PrivateWallet(["sd22ds", "jonas", "jonas", "jo1nas", "jon22as"])
-wallet4 = PrivateWallet(["sd2awd2ds", "jonas", "jonas", "jonas", "jon23as"])
-wallet5 = PrivateWallet(["sd22ds", "jond2as", "jonas", "jonas", "jon2as"])
-wallet6 = PrivateWallet(["sd22ds", "jonas", "jo123nas", "jonas", "jo12213nas"])
-wallet7 = PrivateWallet(["sd22ds", "jona1w3s", "jonas", "jonas", "jonas"])
-wallet8 = PrivateWallet(["sd22ds", "jonas", "jond1was", "jonas", "jo1221nas"])
-wallet9 = PrivateWallet(["sd223322ds", "jon233as", "jonas", "jonas", "jonas"])
-wallet10 = PrivateWallet(["sd22ds", "jon11as", "jond1was", "jonas", "jonas"])
+def wallet_to_wallet(wallet_a, wallet_b, amount=None):
+    if amount is None:
+        amount = random.randint(1, 100)
+    utxo = blockchain.process_tx(wallet_a.prepare_tx(wallet_b.pk_str, amount))
+    wallet1.unspent_tx.add(utxo)
+    wallet_b.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
 
-wallets = [wallet1, wallet2]
 
 blockchain = Blockchain()
 blockchain.create_genesis_block(wallet1)
 wallet1.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
 
+total_supply = 21000000
 
-def a_to_b():
-    amount = random.randint(1, 100)
-    blockchain.process_tx(wallet1.prepare_tx(wallet2.pk_str, amount))
+for i in range(1, len(wallets)):
+    wallet_to_wallet(wallet1, wallets[i], total_supply / len(wallets))
     blockchain.mine()
+    print("Wallet:", i)
 
-    wallet1.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
-    wallet2.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
-    print("Balance 1:", wallet1.get_balance())
-    print("Balance 2:", wallet2.get_balance())
+print("GO")
+for i in range(500):
+    already_sent = set()
+    for j in range(100):
+        while True:
+            wallet_a = wallets[random.randint(0, len(wallets)-1)]
+            wallet_b = wallets[random.randint(0, len(wallets)-1)]
 
-def b_to_a():
-    amount = random.randint(1, 100)
-    blockchain.process_tx(wallet2.prepare_tx(wallet1.pk_str, amount))
+            if wallet_a.pk_str == wallet_b.pk_str:
+                continue
+            else:
+                break
+
+        if wallet_a.pk_str in already_sent:
+            continue
+
+        try:
+            already_sent.add(wallet_a.pk_str)
+            wallet_to_wallet(wallet_a, wallet_b)
+        except NotEnoughFundsException:
+            pass
+        except AttributeError:
+            pass
+
     blockchain.mine()
+    print(i)
 
-    wallet1.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
-    wallet2.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
-    print("Balance 1:", wallet1.get_balance())
-    print("Balance 2:", wallet2.get_balance())
+print("UTXO:", len(blockchain.unspent_tx))
+print("Blocks:", len(blockchain.chain))
+total_balance = 0
+tx_count = 0
+utxo_count = 0
 
 
-a_to_b()
+for wallet in wallets:
+    wallet.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
+    wallet_balance = wallet.get_balance()
 
+    if wallet_balance < 10:
+        print("Wallet:", wallet_balance)
+
+    total_balance += wallet_balance
+
+for utxo in blockchain.unspent_tx:
+    utxo_count += utxo.amount
+
+for block in blockchain.chain:
+    tx_count += len(block.transactions)
+
+print("Total balance:", total_balance)
+print("Transaction per block:", tx_count // len(blockchain.chain))
+print("UTXO sum:", utxo_count)
 
 
 def blockchain_to_json():

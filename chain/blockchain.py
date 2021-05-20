@@ -44,7 +44,7 @@ class Blockchain:
                 print(data_line)
 
     def create_genesis_block(self, first_wallet):
-        amount = 20000
+        amount = 21000000
 
         genesis_tx = TokenTX(self.coinbase.pk_str, first_wallet.pk_str, amount, [])
         genesis_block = Block(0, [genesis_tx], "0")
@@ -144,23 +144,31 @@ class Blockchain:
             #sender_amount = left_over - miner_amount
             sender_amount = left_over
 
-            self.add_utxo_to_tx(transaction, sender_amount, recipient_amount, miner_amount)
             self.memory_pool.append(transaction)
+            utxo = self.add_utxo_to_tx(transaction, sender_amount, recipient_amount, miner_amount)
+
+            return utxo
 
         except InvalidSignature as e:
-            print("Invalid signature - Transaction failed.")
+            pass
+            #print("Invalid signature - Transaction failed.")
         except NotEnoughFundsException as e:
-            print("Not enough funds in all inputs - Transaction failed.")
+            pass
+            #print("Not enough funds in all inputs - Transaction failed.")
         except UtxoNotFoundError as e:
-            print("UTXO of input does not exist - Transaction failed.")
+            pass
+            #print("UTXO of input does not exist - Transaction failed.")
         except UtxoError as e:
-            print("UTXO addresses does not match - Transaction failed.")
+            pass
+            #print("UTXO addresses does not match - Transaction failed.")
 
     def add_utxo_to_tx(self, transaction, sender_amount, recipient_amount, miner_amount):
         recipient_utxo = TransactionOutput(apply_sha256(transaction.receiver), recipient_amount, transaction.tx_id, 0)
         sender_utxo = TransactionOutput(apply_sha256(transaction.sender), sender_amount, transaction.tx_id, 1)
         #miner_utxo = TransactionOutput(apply_sha256(self.coinbase.pk_str), miner_amount, transaction.tx_id, 2)
         transaction.tx_outputs = [recipient_utxo, sender_utxo]
+
+        return TransactionOutput(apply_sha256(transaction.sender), sender_amount, transaction.tx_id, 1)
 
     def mine(self):
         """
@@ -203,8 +211,4 @@ class Blockchain:
         new_block.hash = new_block.compute_hash()
 
         self.chain.append(new_block)
-        print("MINED:", len(self.memory_pool))
         self.memory_pool = []
-
-
-        return True

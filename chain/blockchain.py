@@ -23,7 +23,8 @@ TXPosition = namedtuple("TXPosition", ("block_idx", "tx_idx"))
 
 
 class Blockchain:
-    difficulty = 2
+
+    difficulty = 3
 
     def __init__(self):
         self.unspent_tx = set()

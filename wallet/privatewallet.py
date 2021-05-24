@@ -9,7 +9,6 @@ from transaction.exceptions import NotEnoughFundsException
 from transaction.tx import TokenTX
 from transaction.tx_data import DataTransaction
 from transaction.tx_input import TransactionInput
-from transaction.tx_output import TransactionOutput
 from wallet.keypair import KeyPair
 
 
@@ -78,7 +77,7 @@ class PrivateWallet:
 
         for tx_output in self.unspent_tx:
 
-            if tx_output.recipient != hashed_pk:
+            if tx_output.receiver != hashed_pk:
                 continue
 
             total += tx_output.amount
@@ -106,7 +105,7 @@ class PrivateWallet:
         hashed_pk = apply_sha256(self.pk_str)
 
         for tx_output in self.unspent_tx:
-            if tx_output.recipient == hashed_pk:
+            if tx_output.receiver == hashed_pk:
                 total += tx_output.amount
 
         return total

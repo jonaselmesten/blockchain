@@ -2,13 +2,11 @@ import abc
 import json
 import time
 from abc import abstractmethod
-from hashlib import sha256
 
 from cryptography.hazmat.primitives import serialization
 
-from hash_util import _signature_algorithm, apply_sha256
+from hash_util import apply_sha256
 from serialize import JsonSerializable
-from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
 
 
@@ -38,13 +36,18 @@ class TokenTX(JsonSerializable):
         @param json: JSON string.
         @return: Transaction object.
         """
-        sender = serialization.load_pem_public_key(json["sender"].encode())
-        receiver = serialization.load_pem_public_key(json["receiver"].encode())
+        # sender = serialization.load_pem_public_key(json["sender"].encode())
+        # receiver = serialization.load_pem_public_key(json["receiver"].encode())
 
-        tx = TokenTX(sender,
-                     receiver,
+        tx_inputs = []
+
+        for tx_input in json["tx_inputs"]:
+            tx_inputs.append(TransactionOutput.from_json(tx_input))
+
+        tx = TokenTX(json["sender"],
+                     json["receiver"],
                      float(json["amount"]),
-                     [])
+                     tx_inputs)
 
         tx.time_stamp = json["time_stamp"]
         tx.signature = bytes.fromhex(json["signature"])
@@ -69,12 +72,16 @@ class TokenTX(JsonSerializable):
         self.tx_id = self.get_sign_data()
 
     def serialize(self):
-        return json.loads(json.dumps({"sender": self.sender,
-                                      "receiver": self.receiver,
-                                      "time_stamp": self.time_stamp,
-                                      "amount": str(self.amount),
-                                      "signature": str(self.signature.hex())
-                                      }, default=JsonSerializable.dumper, indent=4))
+        return json.dumps({"sender": self.sender,
+                           "receiver": self.receiver,
+                           "time_stamp": self.time_stamp,
+                           "amount": str(self.amount),
+                           "signature": str(self.signature.hex()),
+                           "tx_inputs": self.tx_inputs
+                           }, default=JsonSerializable.dumper, indent=4)
 
+    def __hash__(self):
+        return hash(self.get_sign_data())
 
-
+    def __eq__(self, other):
+        return self.get_sign_data() == other.get_sign_data()

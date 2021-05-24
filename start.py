@@ -23,7 +23,7 @@ for i in range(1000):
 def copy_of_utxo(unspent):
     utxo = set()
     for ut in unspent:
-        copy_of = TransactionOutput(ut.recipient, ut.amount, ut.parent_tx_id, ut.vout)
+        copy_of = TransactionOutput(ut.receiver, ut.amount, ut.parent_tx_id, ut.vout)
         utxo.add(copy_of)
     return utxo
 

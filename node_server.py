@@ -1,13 +1,17 @@
 import json
-import time
 
 import requests
 from flask import Flask, request
+
 from chain.block import Block
 from chain.blockchain import Blockchain
 from chain.exceptions import BlockHashError
 from chain.header import BlockHeader
+from hash_util import apply_sha256
 from serialize import JsonSerializable
+from server.tx import process_tx, propagate_tx
+from transaction.tx import TokenTX
+from transaction.tx_output import TransactionOutput
 from wallet.privatewallet import PrivateWallet
 
 app = Flask(__name__)
@@ -16,7 +20,7 @@ host_address = None
 peers = set()
 
 blockchain = Blockchain()
-start_wallet = PrivateWallet(word_list=["a", "a", "a", "a", "a"])
+start_wallet = PrivateWallet.from_seed_phrase(["a", "a", "a", "a", "a"])
 blockchain.create_genesis_block(start_wallet)
 
 
@@ -28,24 +32,24 @@ def set_host_address():
 
 @app.route('/new_transaction', methods=['POST'])
 def new_transaction():
-    # Before sending to other peers:
-    # TODO: Check TX before propagate.
-    # TODO: Check that UTXO's are unspent.
-    # TODO: Check dont't relay already seen TX.
 
-    tx_data = request.get_json()
+    tx_json = request.get_json()
+    tx_loaded = json.loads(tx_json)
+    tx = TokenTX.from_json(tx_loaded)
 
-    required_fields = ["author", "content"]
+    if tx in blockchain.memory_pool:
+        return "Tx already in mempool", 409
 
-    for field in required_fields:
-        if not tx_data.get(field):
-            return "Invalid transaction data", 404
+    if process_tx(tx, blockchain):
+        print("Transaction valid - Added to mempool.")
 
-    tx_data["timestamp"] = time.time()
-
-    blockchain.add_new_transaction(tx_data)
+        for node in peers:
+            propagate_tx(node, tx_json)
+    else:
+        return "Invalid transaction", 400
 
     return "Success", 201
+
 
 
 @app.route('/chain', methods=['GET'])
@@ -63,10 +67,10 @@ def blockchain_to_json():
     peer_list = [host_address]
     peer_list.extend(list(peers))
 
-    return json.dumps({"length": len(chain_data),
+    return json.dumps({"length": str(len(chain_data)),
                        "blocks": chain_data,
                        "data": blockchain.data,
-                       "utxo": blockchain.unspent_tx,
+                       "utxo": list(blockchain.unspent_tx),
                        "peers": peer_list},
                       default=JsonSerializable.dumper,
                       indent=4)
@@ -83,6 +87,7 @@ def get_node_peers():
 
 @app.route('/register_node', methods=['POST'])
 def register_new_peers():
+
     # Address of new node in the network.
     node_address = request.get_json()["node_address"]
 
@@ -189,7 +194,7 @@ def register_with_existing_node():
 
         return "Blockchain creation and registration successful", 200
     else:
-        return response.content, response.status_code
+        return "Failed to create and register blockchain", response.status_code
 
 
 def create_chain_from_dump(chain_dump):
@@ -199,10 +204,15 @@ def create_chain_from_dump(chain_dump):
     @return: Generated blockchain.
     """
     generated_blockchain = Blockchain()
-    generated_blockchain.create_genesis_block()
+    generated_blockchain.create_genesis_block(start_wallet)
 
     generated_blockchain.data = chain_dump["data"]
-    generated_blockchain.unspent_tx = chain_dump["utxo"]
+    unspent_tx = set()
+
+    for utxo in chain_dump["utxo"]:
+        unspent_tx.add(TransactionOutput.from_json(utxo))
+
+    generated_blockchain.unspent_tx = unspent_tx
 
     for idx, block_data in enumerate(chain_dump["blocks"]):
 
@@ -332,12 +342,12 @@ def mine_unconfirmed_transactions():
 @app.route('/wallet_balance', methods=['GET'])
 def get_balance():
     total = 0
-    public_key = request.args.get("public_key")
+    public_key = apply_sha256(request.args.get("public_key"))
     utxo = []
 
     # Add all UTXO
-    for tx_hash, tx_output in blockchain.unspent_tx.items():
-        if tx_output.recipient == public_key:
+    for tx_output in blockchain.unspent_tx:
+        if tx_output.receiver == public_key:
             total += tx_output.amount
             utxo.append(tx_output)
 

@@ -6,31 +6,32 @@ from serialize import JsonSerializable
 
 class TransactionOutput(JsonSerializable):
 
-    def __init__(self, recipient, amount, parent_tx_id, vout):
-        self.recipient = recipient
-        self.amount = amount
+    def __init__(self, receiver, amount, parent_tx_id, vout):
+        self.receiver = receiver
+        self.amount = float(amount)
         self.parent_tx_id = parent_tx_id
         self.vout = vout
 
     @classmethod
-    def fromDict(cls, json):
-        txo = TransactionOutput(json["recipient"],
+    def from_json(cls, json):
+        txo = TransactionOutput(json["receiver"],
                                 float(json["amount"]),
-                                json["parent_tx_id"])
-        txo.tx_id = json["tx_id"]
+                                json["parent_tx_id"],
+                                int(json["vout"]))
         return txo
 
     def serialize(self):
-        return json.loads(json.dumps({"recipient": self.recipient,
+        return json.loads(json.dumps({"receiver": self.receiver,
                                       "amount": str(self.amount),
-                                      "parent_tx_id": self.parent_tx_id
+                                      "parent_tx_id": self.parent_tx_id,
+                                      "vout": str(self.vout)
                                       }, default=JsonSerializable.dumper, indent=4))
 
     def __hash__(self):
-        return hash(apply_sha256(self.recipient, self.amount, self.parent_tx_id, self.vout))
+        return hash(apply_sha256(self.receiver, self.amount, self.parent_tx_id, self.vout))
 
     def __eq__(self, other):
-        return self.recipient == other.recipient \
+        return self.receiver == other.receiver \
                and self.amount == other.amount \
                and self.parent_tx_id == other.parent_tx_id \
                and self.vout == other.vout

@@ -1,16 +1,9 @@
-import json
-import sys
 from collections import namedtuple
 from sys import getsizeof
 
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives import serialization
-
 from chain.block import Block
-from chain.exceptions import UtxoNotFoundError, UtxoError
 from chain.header import BlockHeader
-from hash_util import public_key_to_string, merkle_root, apply_sha256, _signature_algorithm
-from transaction.exceptions import NotEnoughFundsException
+from hash_util import public_key_to_string, merkle_root, apply_sha256
 from transaction.tx import TokenTX
 from transaction.tx_output import TransactionOutput
 from wallet.privatewallet import PrivateWallet
@@ -28,7 +21,7 @@ class Blockchain:
 
     def __init__(self):
         self.unspent_tx = set()
-        self.memory_pool = []
+        self.memory_pool = set()
         self.chain = []
         self.data = {}
         self.coinbase = PrivateWallet(["genesis", "genesis", "genesis", "genesis", "genesis"], self)
@@ -99,77 +92,6 @@ class Blockchain:
 
     def __iter__(self):
         return iter(self.chain)
-
-    # TODO: Move this to node server.
-    def transaction_is_valid(self, transaction):
-        public_key = serialization.load_pem_public_key(transaction.sender.encode())
-        public_key.verify(transaction.signature, bytes(transaction.get_sign_data(), "utf-8"), _signature_algorithm)
-
-    # TODO: Move this to node server.
-    def process_tx(self, transaction):
-
-        sender = apply_sha256(transaction.sender)
-        tx_total = 0
-
-        try:
-            self.transaction_is_valid(transaction)
-
-            # Check that all input is valid.
-            for input_tx in transaction.tx_inputs:
-
-                # Check UTXO recipient key and sender key.
-                if input_tx.recipient != sender:
-                    raise UtxoError("Public key does not match")
-
-                # Check if input is unspent.
-                if input_tx not in self.unspent_tx:
-                    raise UtxoNotFoundError
-
-                # Find location of parent TX.
-                block_idx, tx_idx = self.tx_position[input_tx.parent_tx_id]
-
-                # Check if parent TX is valid.
-                origin_tx = self.chain[block_idx].transactions[tx_idx]
-                self.transaction_is_valid(origin_tx)
-
-                tx_total += input_tx.amount
-
-            # Check that the amount is not smaller than all inputs combined.
-            if tx_total < transaction.amount:
-                raise NotEnoughFundsException
-
-            # Calculate
-            left_over = tx_total - transaction.amount
-            miner_amount = transaction.amount * 0.01
-            recipient_amount = transaction.amount
-            #sender_amount = left_over - miner_amount
-            sender_amount = left_over
-
-            self.memory_pool.append(transaction)
-            utxo = self.add_utxo_to_tx(transaction, sender_amount, recipient_amount, miner_amount)
-
-            return utxo
-
-        except InvalidSignature as e:
-            pass
-            #print("Invalid signature - Transaction failed.")
-        except NotEnoughFundsException as e:
-            pass
-            #print("Not enough funds in all inputs - Transaction failed.")
-        except UtxoNotFoundError as e:
-            pass
-            #print("UTXO of input does not exist - Transaction failed.")
-        except UtxoError as e:
-            pass
-            #print("UTXO addresses does not match - Transaction failed.")
-
-    def add_utxo_to_tx(self, transaction, sender_amount, recipient_amount, miner_amount):
-        recipient_utxo = TransactionOutput(apply_sha256(transaction.receiver), recipient_amount, transaction.tx_id, 0)
-        sender_utxo = TransactionOutput(apply_sha256(transaction.sender), sender_amount, transaction.tx_id, 1)
-        #miner_utxo = TransactionOutput(apply_sha256(self.coinbase.pk_str), miner_amount, transaction.tx_id, 2)
-        transaction.tx_outputs = [recipient_utxo, sender_utxo]
-
-        return TransactionOutput(apply_sha256(transaction.sender), sender_amount, transaction.tx_id, 1)
 
     def mine(self):
         """

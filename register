@@ -4,12 +4,10 @@ echo "Register nodes"
 
 curl -X POST http://localhost:8001/register_with -H "Content-Type: application/json" -d "{\"node_address\":\"http://localhost:8000\"}"
 curl -X POST http://localhost:8002/register_with -H "Content-Type: application/json" -d "{\"node_address\":\"http://localhost:8000\"}"
-curl -X POST http://localhost:8003/register_with -H "Content-Type: application/json" -d "{\"node_address\":\"http://localhost:8000\"}"
 
 curl -X GET http://localhost:8000/peers
 curl -X GET http://localhost:8001/peers
 curl -X GET http://localhost:8002/peers
-curl -X GET http://localhost:8003/peers
 
 #curl -X GET http://localhost:8000/chain
 #curl -X GET http://localhost:8001/chain

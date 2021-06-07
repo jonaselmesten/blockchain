@@ -27,9 +27,7 @@ blockchain.create_genesis_block(start_wallet)
 @app.before_first_request
 def set_host_address():
     global host_address
-
     host_address = request.host_url
-
 
 
 

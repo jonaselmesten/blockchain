@@ -1,10 +1,12 @@
 import json
 
 import requests
+from urllib3.exceptions import MaxRetryError
 
 from hash_util import public_key_to_string
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
+from wallet.gui import WalletGUI
 from wallet.privatewallet import PrivateWallet
 
 blockchain_address = "http://127.0.0.1:8000/"
@@ -18,20 +20,38 @@ receiver_pk = public_key_to_string(receiver_wallet.public_key)
 
 # TODO: SPV Wallet
 " https://learnmeabitcoin.com/technical/merkle-root"
+
+
 def update_balance():
-    payload = {"public_key": public_key}
-    response = requests.get(blockchain_address + "/wallet_balance",
-                            params=payload)
+    """
 
-    value = json.loads(response.content)
+    @return:
+    """
+    try:
+        payload = {"public_key": public_key}
+        response = requests.get(blockchain_address + "/wallet_balance",
+                                params=payload)
 
-    for utxo in value["utxo"]:
-        wallet.unspent_tx.append(TransactionOutput.from_json(utxo))
+        value = json.loads(response.content)
 
+        # Add all UTXO for this wallet.
+        for utxo in value["utxo"]:
+            wallet.unspent_tx.append(TransactionOutput.from_json(utxo))
+
+        print("Wallet balance:", value)
+
+        return value["balance"]
+
+    except OSError:
+        raise ConnectionError("Failed to connect with blockchain.")
 
 
 def send_transaction(receiver, amount):
+    """
 
+    @param receiver:
+    @param amount:
+    """
     try:
         new_tx = wallet.prepare_tx(receiver, amount)
         response = requests.post(blockchain_address + "/new_transaction",
@@ -42,5 +62,9 @@ def send_transaction(receiver, amount):
     except NotEnoughFundsException:
         pass
 
-update_balance()
-send_transaction(receiver_pk, 100.0)
+
+gui_wallet = WalletGUI(balance_func=update_balance,
+                       send_funds_func=send_transaction,
+                       public_address=public_key)
+
+# send_transaction(receiver_pk, 100.0)

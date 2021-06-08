@@ -7,12 +7,13 @@ from chain.block import Block
 from chain.blockchain import Blockchain
 from chain.exceptions import BlockHashError
 from chain.header import BlockHeader
-from server.node_chain import start_wallet, peers
+from server.node import start_wallet, peers, blockchain
 from transaction.tx_output import TransactionOutput
 from util.serialize import JsonSerializable
 
 peers_api = Blueprint("peers_api", __name__, template_folder="server")
 
+global blockchain
 
 @peers_api.route('/peers', methods=['GET'])
 def get_node_peers():
@@ -25,7 +26,6 @@ def get_node_peers():
 
 @peers_api.route('/register_node', methods=['POST'])
 def register_new_peers():
-
     # Address of new node in the network.
     node_address = request.get_json()["node_address"]
 
@@ -79,6 +79,7 @@ def register_with_existing_node():
     @return: HTTP status code of this action.
     """
     node_address = request.get_json()["node_address"]
+    global blockchain
 
     if not node_address:
         return "Need to specify node address", 400
@@ -93,8 +94,6 @@ def register_with_existing_node():
 
     # Successful - Try to create local blockchain.
     if response.status_code == 200:
-
-        global blockchain
 
         try:
             chain_dump = response.json()
@@ -133,7 +132,6 @@ def register_with_existing_node():
         return "Blockchain creation and registration successful", 200
     else:
         return "Failed to create and register blockchain", response.status_code
-
 
 
 @peers_api.route('/chain', methods=['GET'])

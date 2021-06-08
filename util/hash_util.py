@@ -4,7 +4,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import PublicFormat, Encoding
 from cryptography.hazmat.primitives.asymmetric import ec
 
-_signature_algorithm = ec.ECDSA(hashes.SHA256())
+signature_algorithm = ec.ECDSA(hashes.SHA256())
 
 
 def public_key_to_string(wallet_public_key):

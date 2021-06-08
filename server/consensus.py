@@ -4,13 +4,64 @@ import requests
 from flask import request, Blueprint
 
 from chain.block import Block
+from chain.blockchain import Blockchain, TXPosition
+from chain.header import BlockHeader
+from server.node import peers, blockchain
+from util.hash_util import merkle_root
 
 consensus_api = Blueprint("consensus_api", __name__, template_folder="server")
 
 
-# endpoint to add a block mined by someone else to
-# the node's chain. The block is first verified by the node
-# and then added to the chain.
+def mine():
+    """
+    This function serves as an interface to add the pending
+    transactions to the blockchain by adding them to the block
+    and figuring out Proof Of Work.
+    """
+    print("Starting to mine block:", len(blockchain.chain))
+
+    if len(blockchain.memory_pool) == 0:
+        return
+
+    # Gather all tx ids.
+    tx_ids = [tx.tx_id for tx in blockchain.memory_pool]
+
+    # Create block header for our candidate block.
+    header = BlockHeader(previous_block_hash=blockchain.last_block.hash,
+                         merkle_root=merkle_root(tx_ids))
+
+    # Try to guess the correct hash given a certain difficulty.
+    computed_hash = header.compute_hash()
+    while not computed_hash.startswith('0' * Blockchain.difficulty):
+        header.nonce += 1
+        computed_hash = header.compute_hash()
+
+    print("Found correct nonce:", header.nonce, " Hash:", computed_hash[0:10])
+
+    # Update UTXO and transaction position.
+    for index, transaction in enumerate(blockchain.memory_pool):
+        # Add tx position.
+        blockchain.tx_position[transaction.tx_id] = TXPosition(len(blockchain.chain), index)
+        # Add outputs as unspent.
+        for utxo in transaction.tx_outputs:
+            blockchain.unspent_tx.add(utxo)
+        # Remove utxo that now are spent.
+        for input_tx in transaction.tx_inputs:
+            blockchain.unspent_tx.remove(input_tx)
+
+    print("Creating new block")
+
+    new_block = Block(index=len(blockchain.chain),
+                      transactions=list(blockchain.memory_pool),
+                      header=header)
+
+    new_block.hash = new_block.compute_hash()
+
+    blockchain.chain.append(new_block)
+    blockchain.memory_pool = set()
+
+
+
 @consensus_api.route('/add_block', methods=['POST'])
 def verify_and_add_block():
     # TODO: 1: Validate block header.
@@ -33,65 +84,3 @@ def verify_and_add_block():
 
     return "Block added to the chain", 201
 
-
-def consensus():
-    """
-    Our naive consensus algorithm. If a longer valid chain is
-    found, our chain is replaced with it.
-    """
-    global blockchain
-
-    longest_chain = None
-    current_len = len(blockchain.chain)
-
-    for node in peers:
-
-        response = requests.get('{}chain'.format(node))
-        length = response.json()['length']
-        chain = response.json()['chain']
-
-        if length > current_len and blockchain.check_chain_validity(chain):
-            current_len = length
-            longest_chain = chain
-
-    if longest_chain:
-        blockchain = longest_chain
-        return True
-
-    return False
-
-
-def announce_new_block(block):
-    """
-    A function to announce to the network once a block has been mined.
-    Other blocks can simply verify the proof of work and add it to their
-    respective chains.
-    """
-    for peer in peers:
-        url = "{}add_block".format(peer)
-        headers = {'Content-Type': "application/json"}
-
-        requests.post(url,
-                      data=json.dumps(block.__dict__, sort_keys=True),
-                      headers=headers)
-
-
-# endpoint to request the node to mine the unconfirmed
-# transactions (if any). We'll be using it to initiate
-# a command to mine from our application itself.
-@consensus_api.route('/mine', methods=['GET'])
-def mine_unconfirmed_transactions():
-    result = blockchain.mine()
-
-    if not result:
-        return "No transactions to mine"
-    else:
-        # Making sure we have the longest chain before announcing to the network
-        chain_length = len(blockchain.chain)
-        consensus()
-
-        if chain_length == len(blockchain.chain):
-            # announce the recently mined block to the network
-            announce_new_block(blockchain.last_block)
-
-        return "Block #{} is mined.".format(blockchain.last_block.index)

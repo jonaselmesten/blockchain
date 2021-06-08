@@ -4,7 +4,7 @@ from hashlib import sha256
 from util.serialize import JsonSerializable
 
 
-class Block:
+class Block(JsonSerializable):
 
     def __init__(self, index: int, transactions: list, header):
         """
@@ -25,8 +25,16 @@ class Block:
         self.hash = ""
 
     def compute_hash(self) -> str:
-        block_string = json.dumps(self.__dict__, default=JsonSerializable.dumper)
+        block_string = self.serialize()
         return sha256(block_string.encode()).hexdigest()
+
+    def serialize(self):
+        return json.dumps({"header": self.header,
+                           "index": self.index,
+                           "transactions": self.transactions,
+                           "data": self.data,
+                           "hash": self.hash
+                           }, default=JsonSerializable.dumper, indent=4)
 
     def __str__(self):
         string = \

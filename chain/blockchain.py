@@ -1,8 +1,9 @@
 from collections import namedtuple
 from sys import getsizeof
 
+import ordered_set
+
 from chain.block import Block
-from chain.header import BlockHeader
 from util.hash_util import public_key_to_string, merkle_root, apply_sha256
 from transaction.tx import TokenTX
 from transaction.tx_output import TransactionOutput
@@ -20,8 +21,8 @@ class Blockchain:
     difficulty = 3
 
     def __init__(self):
-        self.unspent_tx = set()
-        self.memory_pool = set()
+        self.unspent_tx = ordered_set.OrderedSet()
+        self.memory_pool = ordered_set.OrderedSet()
         self.chain = []
         self.data = {}
         self.coinbase = PrivateWallet(["genesis", "genesis", "genesis", "genesis", "genesis"], self)
@@ -92,46 +93,3 @@ class Blockchain:
 
     def __iter__(self):
         return iter(self.chain)
-
-    def mine(self):
-        """
-        This function serves as an interface to add the pending
-        transactions to the blockchain by adding them to the block
-        and figuring out Proof Of Work.
-        """
-
-        if len(self.memory_pool) == 0:
-            return
-
-        # Gather all tx ids.
-        tx_ids = [tx.tx_id for tx in self.memory_pool]
-
-        # Create block header for our candidate block.
-        header = BlockHeader(previous_block_hash=self.last_block.hash,
-                             merkle_root=merkle_root(tx_ids))
-
-        # Try to guess the correct hash given a certain difficulty.
-        computed_hash = header.compute_hash()
-        while not computed_hash.startswith('0' * Blockchain.difficulty):
-            header.nonce += 1
-            computed_hash = header.compute_hash()
-
-        # Update UTXO and transaction position.
-        for index, transaction in enumerate(self.memory_pool):
-            # Add tx position.
-            self.tx_position[transaction.tx_id] = TXPosition(len(self.chain), index)
-            # Add outputs as unspent.
-            for utxo in transaction.tx_outputs:
-                self.unspent_tx.add(utxo)
-            # Remove utxo that now are spent.
-            for input_tx in transaction.tx_inputs:
-                self.unspent_tx.remove(input_tx)
-
-        new_block = Block(index=len(self.chain),
-                          transactions=self.memory_pool,
-                          header=header)
-
-        new_block.hash = new_block.compute_hash()
-
-        self.chain.append(new_block)
-        self.memory_pool = []

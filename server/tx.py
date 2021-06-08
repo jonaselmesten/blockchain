@@ -6,19 +6,17 @@ from cryptography.hazmat.primitives import serialization
 from flask import request, Blueprint
 
 from chain.exceptions import UtxoNotFoundError, UtxoError
-from server.node_chain import blockchain, peers
-from server.tx import process_tx, propagate_tx
+from server.consensus import mine
+from server.node import blockchain, peers
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx import TokenTX
 from transaction.tx_output import TransactionOutput
-from util.hash_util import _signature_algorithm
-from util.hash_util import apply_sha256
+from util.hash_util import apply_sha256, signature_algorithm
 from util.serialize import JsonSerializable
 
 tx_api = Blueprint("tx_api", __name__, template_folder="server")
 
 
-# endpoint to query unconfirmed transactions
 @tx_api.route('/pending_tx')
 def get_pending_tx():
     return json.dumps(list(blockchain.memory_pool),
@@ -36,13 +34,16 @@ def new_transaction():
     if tx in blockchain.memory_pool:
         return "Tx already in mempool", 409
 
-    if process_tx(tx, blockchain):
+    if process_tx(tx):
         print("Transaction valid - Added to mempool.")
 
         for node in peers:
             propagate_tx(node, tx_json)
     else:
         return "Invalid transaction", 400
+
+    if len(blockchain.memory_pool) >= 1:
+        mine()
 
     return "Success", 201
 
@@ -62,14 +63,9 @@ def propagate_tx(node_address, tx_json):
     else:
         print("Failed to send tx to:", node_address)
 
+# TODO: Change mempool to list to preserve order.
+def process_tx(transaction):
 
-def process_tx(transaction, blockchain):
-    """
-
-    @param transaction:
-    @param blockchain:
-    @return:
-    """
     sender = apply_sha256(transaction.sender)
     tx_total = 0
 
@@ -108,6 +104,7 @@ def process_tx(transaction, blockchain):
         sender_amount = left_over
 
         blockchain.memory_pool.add(transaction)
+        # TODO: Sender should receive this to update the wallet balance.
         utxo = _add_utxo_to_tx(transaction, sender_amount, recipient_amount, miner_amount)
 
         return True
@@ -132,9 +129,10 @@ def _add_utxo_to_tx(transaction, sender_amount, recipient_amount, miner_amount):
     # miner_utxo = TransactionOutput(apply_sha256(self.coinbase.pk_str), miner_amount, transaction.tx_id, 2)
     transaction.tx_outputs = [recipient_utxo, sender_utxo]
 
+    # Return UTXO
     return TransactionOutput(apply_sha256(transaction.sender), sender_amount, transaction.tx_id, 1)
 
 
 def _transaction_is_valid(transaction):
     public_key = serialization.load_pem_public_key(transaction.sender.encode())
-    public_key.verify(transaction.signature, bytes(transaction.get_sign_data(), "utf-8"), _signature_algorithm)
+    public_key.verify(transaction.signature, bytes(transaction.get_sign_data(), "utf-8"), signature_algorithm)

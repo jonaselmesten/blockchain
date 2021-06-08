@@ -2,7 +2,7 @@ import json
 
 from flask import request, Blueprint
 
-from server.node_chain import blockchain
+from server.node import blockchain
 from util.hash_util import apply_sha256
 from util.serialize import JsonSerializable
 

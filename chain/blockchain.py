@@ -3,7 +3,7 @@ from sys import getsizeof
 
 from chain.block import Block
 from chain.header import BlockHeader
-from hash_util import public_key_to_string, merkle_root, apply_sha256
+from util.hash_util import public_key_to_string, merkle_root, apply_sha256
 from transaction.tx import TokenTX
 from transaction.tx_output import TransactionOutput
 from wallet.privatewallet import PrivateWallet

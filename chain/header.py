@@ -2,7 +2,7 @@ import json
 import time
 from hashlib import sha256
 
-from serialize import JsonSerializable
+from util.serialize import JsonSerializable
 
 
 class BlockHeader:

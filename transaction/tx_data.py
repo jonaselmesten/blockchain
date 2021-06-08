@@ -1,7 +1,7 @@
 import json
 from hashlib import sha256
 
-from hash_util import public_key_to_string, _signature_algorithm, apply_sha256
+from util.hash_util import public_key_to_string, _signature_algorithm, apply_sha256
 
 
 class DataTransaction:

@@ -27,6 +27,7 @@ class WalletGUI:
         self.amount_label.grid(row=3, column=1)
         self.amount_input = tk.Entry()
         self.amount_input.grid(row=3, column=2)
+        self.amount_input.insert(0, 0.0)
 
         self.send_button = tk.Button(text="Send funds", command=self._send_funds)
         self.send_button.grid(row=4, column=2)
@@ -34,7 +35,7 @@ class WalletGUI:
         self.message_text = tk.Label(text="")
         self.message_text.grid(row=5, column=2)
 
-    def __init__(self, balance_func, send_funds_func, public_address):
+    def __init__(self, balance_func, send_funds_func, public_address, temp_rec_addr):
         self._gui_init()
 
         self.public_address = public_address
@@ -43,8 +44,13 @@ class WalletGUI:
         self.balance_func = balance_func
         self.send_funds_func = send_funds_func
 
+        # TODO: Temporary for test.
+        self.recipient_address_input.insert(0, temp_rec_addr)
+
         self._update_balance()
         self.window.mainloop()
+
+
 
     def _update_balance(self):
         try:
@@ -73,7 +79,6 @@ class WalletGUI:
             self.message_text.config(text="Amount must be numeric.")
             self._clear_input()
             return
-
 
         self.send_funds_func(receiver=address, amount=amount)
 

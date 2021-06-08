@@ -1,13 +1,11 @@
 import json
 import random
 
-import hash_util
 from chain.block import Block
 from chain.blockchain import Blockchain
 from chain.exceptions import BlockHashError
 from chain.header import BlockHeader
-from hash_util import public_key_to_string, apply_sha256
-from serialize import JsonSerializable
+from util.serialize import JsonSerializable
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
 from wallet.privatewallet import PrivateWallet

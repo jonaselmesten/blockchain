@@ -1,7 +1,7 @@
 import json
 
-from hash_util import apply_sha256, public_key_to_string
-from serialize import JsonSerializable
+from util.hash_util import apply_sha256
+from util.serialize import JsonSerializable
 
 
 class TransactionOutput(JsonSerializable):

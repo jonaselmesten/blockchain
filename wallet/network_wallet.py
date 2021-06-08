@@ -1,9 +1,8 @@
 import json
 
 import requests
-from urllib3.exceptions import MaxRetryError
 
-from hash_util import public_key_to_string
+from util.hash_util import public_key_to_string
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
 from wallet.gui import WalletGUI
@@ -18,10 +17,8 @@ public_key = public_key_to_string(wallet.public_key)
 receiver_wallet = PrivateWallet.from_seed_phrase(["wallet", "a", "a", "a", "a"])
 receiver_pk = public_key_to_string(receiver_wallet.public_key)
 
-# TODO: SPV Wallet
-" https://learnmeabitcoin.com/technical/merkle-root"
 
-
+# TODO: Implement SPV-wallet.
 def update_balance():
     """
 
@@ -63,8 +60,11 @@ def send_transaction(receiver, amount):
         pass
 
 
+send_transaction(receiver_pk, 100.0)
+
 gui_wallet = WalletGUI(balance_func=update_balance,
                        send_funds_func=send_transaction,
-                       public_address=public_key)
+                       public_address=public_key,
+                       temp_rec_addr=receiver_pk)
 
-# send_transaction(receiver_pk, 100.0)
+

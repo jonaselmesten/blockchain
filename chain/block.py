@@ -1,9 +1,7 @@
 import json
-import time
 from hashlib import sha256
 
-from chain.header import BlockHeader
-from serialize import JsonSerializable
+from util.serialize import JsonSerializable
 
 
 class Block:

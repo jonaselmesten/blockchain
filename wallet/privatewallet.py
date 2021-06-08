@@ -3,8 +3,8 @@ from time import time
 
 from cryptography.hazmat.primitives import serialization
 
-import hash_util
-from hash_util import public_key_to_string, apply_sha256
+from util import hash_util
+from util.hash_util import public_key_to_string, apply_sha256
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx import TokenTX
 from transaction.tx_data import DataTransaction

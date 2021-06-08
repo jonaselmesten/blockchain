@@ -1,11 +1,50 @@
+import json
+
 import requests
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
+from flask import request, Blueprint
 
 from chain.exceptions import UtxoNotFoundError, UtxoError
-from hash_util import apply_sha256, _signature_algorithm
+from server.node_chain import blockchain, peers
+from server.tx import process_tx, propagate_tx
 from transaction.exceptions import NotEnoughFundsException
+from transaction.tx import TokenTX
 from transaction.tx_output import TransactionOutput
+from util.hash_util import _signature_algorithm
+from util.hash_util import apply_sha256
+from util.serialize import JsonSerializable
+
+tx_api = Blueprint("tx_api", __name__, template_folder="server")
+
+
+# endpoint to query unconfirmed transactions
+@tx_api.route('/pending_tx')
+def get_pending_tx():
+    return json.dumps(list(blockchain.memory_pool),
+                      default=JsonSerializable.dumper,
+                      indent=4)
+
+
+@tx_api.route('/new_transaction', methods=['POST'])
+def new_transaction():
+
+    tx_json = request.get_json()
+    tx_loaded = json.loads(tx_json)
+    tx = TokenTX.from_json(tx_loaded)
+
+    if tx in blockchain.memory_pool:
+        return "Tx already in mempool", 409
+
+    if process_tx(tx, blockchain):
+        print("Transaction valid - Added to mempool.")
+
+        for node in peers:
+            propagate_tx(node, tx_json)
+    else:
+        return "Invalid transaction", 400
+
+    return "Success", 201
 
 
 def propagate_tx(node_address, tx_json):
@@ -25,6 +64,12 @@ def propagate_tx(node_address, tx_json):
 
 
 def process_tx(transaction, blockchain):
+    """
+
+    @param transaction:
+    @param blockchain:
+    @return:
+    """
     sender = apply_sha256(transaction.sender)
     tx_total = 0
 

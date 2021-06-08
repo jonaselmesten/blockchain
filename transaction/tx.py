@@ -3,10 +3,8 @@ import json
 import time
 from abc import abstractmethod
 
-from cryptography.hazmat.primitives import serialization
-
-from hash_util import apply_sha256
-from serialize import JsonSerializable
+from util.hash_util import apply_sha256
+from util.serialize import JsonSerializable
 from transaction.tx_output import TransactionOutput
 
 

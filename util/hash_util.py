@@ -7,6 +7,24 @@ from cryptography.hazmat.primitives.asymmetric import ec
 signature_algorithm = ec.ECDSA(hashes.SHA256())
 
 
+def file_to_hash(pdf_file):
+    """
+    Turn the contents of a PDF-file to hash code.
+    @param pdf_file: File path
+    @return: Hash code.
+    """
+    BLOCK_SIZE = 65536
+    file_hash = hashlib.sha256()
+
+    with open(pdf_file, "rb") as file:
+        file_b = file.read(BLOCK_SIZE)
+        while len(file_b) > 0:
+            file_hash.update(file_b)
+            file_b = file.read(BLOCK_SIZE)
+
+    return file_hash.hexdigest()
+
+
 def public_key_to_string(wallet_public_key):
     """
         Create a byte-string from the public key.

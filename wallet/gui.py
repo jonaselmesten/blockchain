@@ -6,40 +6,39 @@ class WalletGUI:
     def _gui_init(self):
         self.window = tk.Tk()
         self.window.title("Blockchain wallet - ONLINE")
-        self.window.columnconfigure([0, 1, 2, 4], minsize=50)
-        self.window.rowconfigure([0, 1, 2, 3, 4, 5], minsize=25)
 
-        self.frame = tk.Frame(master=self.window)
-        self.frame.grid(row=3, column=2)
 
         self.address_label = tk.Label(text="Public address:")
-        self.address_label.grid(row=0, column=1)
+        self.address_label.pack()
 
         self.balance_label = tk.Label(text="Total balance:")
-        self.balance_label.grid(row=1, column=1)
+        self.balance_label.pack()
 
         self.send_label = tk.Label(text="Send funds to:")
-        self.send_label.grid(row=2, column=1)
+        self.send_label.pack()
         self.recipient_address_input = tk.Entry()
-        self.recipient_address_input.grid(row=2, column=2)
+        self.recipient_address_input.pack()
 
         self.amount_label = tk.Label(text="Amount:")
-        self.amount_label.grid(row=3, column=1)
+        self.amount_label.pack()
         self.amount_input = tk.Entry()
-        self.amount_input.grid(row=3, column=2)
+        self.amount_input.pack()
         self.amount_input.insert(0, 0.0)
 
         self.send_button = tk.Button(text="Send funds", command=self._send_funds)
-        self.send_button.grid(row=4, column=2)
+        self.send_button.pack()
 
         self.message_text = tk.Label(text="")
-        self.message_text.grid(row=5, column=2)
+        self.message_text.pack()
+
+
+
 
     def __init__(self, balance_func, send_funds_func, public_address, temp_rec_addr):
         self._gui_init()
 
         self.public_address = public_address
-        self.address_label.config(text="Public address: " + str(public_address[30:50]))
+        self.address_label.config(text="Public address: " + str(public_address))
 
         self.balance_func = balance_func
         self.send_funds_func = send_funds_func
@@ -86,3 +85,4 @@ class WalletGUI:
         self.message_text.config(text="Sent " + str(self.amount_input.get()) + " to:  " + address)
 
         self._update_balance()
+

@@ -84,7 +84,7 @@ class FileTransaction(JsonSerializable):
         self.time_stamps = []
 
     def get_sign_data(self):
-        return self.file_hash
+        return apply_sha256(self.file_hash)
 
     def serialize(self):
         return json.dumps({"file_hash": self.file_hash,

@@ -1,9 +1,10 @@
 import json
 
 import requests
+from cryptography.hazmat.primitives import serialization
 
 from transaction.tx import FileTransaction
-from util.hash_util import public_key_to_string
+from util.hash_util import public_key_to_string, signature_algorithm
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
 from wallet.gui import WalletGUI
@@ -60,11 +61,21 @@ def send_transaction(receiver, amount):
     except NotEnoughFundsException:
         pass
 
+
+def is_valid_file_transaction(file_tx):
+
+    sign_data = bytes(file_tx.get_sign_data(), "utf-8")
+    for public_key_str, signature in zip(file_tx.public_keys, file_tx.signatures):
+        pk = serialization.load_pem_public_key(public_key_str.encode())
+        pk.verify(signature, sign_data, signature_algorithm)
+
+
 file_tx = FileTransaction("../file.pdf")
 wallet.sign_file_transaction(file_tx)
 receiver_wallet.sign_file_transaction(file_tx)
 
 print(file_tx)
+is_valid_file_transaction(file_tx)
 
 
 def test():

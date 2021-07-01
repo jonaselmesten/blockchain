@@ -30,8 +30,6 @@ class DataTransaction:
         self.sender.verify(self.signature, bytes(self.get_sign_data(), "utf-8"), signature_algorithm)
         return True
 
-
-
     def get_inputs_value(self):
         total = 0
 

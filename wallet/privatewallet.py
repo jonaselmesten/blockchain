@@ -40,6 +40,13 @@ class PrivateWallet:
         transaction_hash = transaction.compute_transaction_id()
         self.key_pair.verify_signature(signature, str.encode(transaction_hash))
 
+    def sign_file_transaction(self, transaction):
+        sign_data = transaction.get_sign_data()
+        signature = self.key_pair.sign_data(bytes(sign_data, "utf-8"))
+        transaction.signatures.append(signature)
+        transaction.time_stamps.append(time().hex())
+        transaction.public_keys.append(self.pk_str)
+
     def write_to_blockchain(self, data):
 
         data_cost = sys.getsizeof(data)

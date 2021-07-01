@@ -27,9 +27,9 @@ def file_to_hash(pdf_file):
 
 def public_key_to_string(wallet_public_key):
     """
-        Create a byte-string from the public key.
-        @return: Public key as string.
-        """
+    Create a byte-string from the public key.
+    @return: Public key as string.
+    """
     return wallet_public_key.public_bytes(encoding=Encoding.PEM,
                                           format=PublicFormat.SubjectPublicKeyInfo).decode()
 

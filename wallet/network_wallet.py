@@ -2,6 +2,7 @@ import json
 
 import requests
 
+from transaction.tx import FileTransaction
 from util.hash_util import public_key_to_string
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
@@ -45,9 +46,9 @@ def update_balance():
 
 def send_transaction(receiver, amount):
     """
-
-    @param receiver:
-    @param amount:
+    Send transaction out to the network.
+    @param receiver: Recipient public key.
+    @param amount: Amount to send.
     """
     try:
         new_tx = wallet.prepare_tx(receiver, amount)
@@ -59,12 +60,18 @@ def send_transaction(receiver, amount):
     except NotEnoughFundsException:
         pass
 
+file_tx = FileTransaction("../file.pdf")
+wallet.sign_file_transaction(file_tx)
+receiver_wallet.sign_file_transaction(file_tx)
 
-send_transaction(receiver_pk, 100.0)
+print(file_tx)
 
-gui_wallet = WalletGUI(balance_func=update_balance,
-                       send_funds_func=send_transaction,
-                       public_address=public_key,
-                       temp_rec_addr=receiver_pk)
+
+def test():
+    send_transaction(receiver_pk, 100.0)
+    gui_wallet = WalletGUI(balance_func=update_balance,
+                           send_funds_func=send_transaction,
+                           public_address=public_key,
+                           temp_rec_addr=receiver_pk)
 
 

@@ -120,13 +120,12 @@ class FileTransaction(JsonSerializable, Transaction):
 
     @classmethod
     def from_json(cls, json):
-        loaded_json = loads(json)
 
         tx = FileTransaction(None, hash_file=False)
 
-        tx.file_hash = loaded_json["file_hash"]
-        tx.public_keys = loaded_json["public_keys"]
-        tx.signatures = [bytes.fromhex(signature) for signature in loaded_json["signatures"]]
+        tx.file_hash = json["file_hash"]
+        tx.public_keys = json["public_keys"]
+        tx.signatures = [bytes.fromhex(signature) for signature in json["signatures"]]
 
         return tx
 

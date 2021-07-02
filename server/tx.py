@@ -1,5 +1,5 @@
 import json
-
+from termcolor import colored
 import requests
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
@@ -40,20 +40,25 @@ def new_token_transaction():
     tx_loaded = json.loads(tx_json)
     tx = _load_tx_from_json(tx_loaded)
 
+    print(colored("New tx received", "green"))
+
     if tx in blockchain.memory_pool:
+        print(colored("Tx already in mempool", "red"))
         return "Tx already in mempool", 409
 
     if _process_tx(tx):
-        print("Transaction valid - Added to mempool.")
+        print(colored("Transaction valid - Added to mempool.", "green"))
 
         for node in peers:
+            print(colored("Sending tx to peer:" + node, "blue"))
             _propagate_tx(node, tx_json)
     else:
         return "Invalid transaction", 400
 
     # TODO: Temporary for testing
     if len(blockchain.memory_pool) >= 1:
-        mine()
+        pass
+        #mine()
 
     return "Success", 201
 
@@ -63,10 +68,12 @@ def _process_tx(tx):
     Function to choose the correct processing method for the supported transactions.
     @param tx: Transaction as JSON.
     """
-    if json["type"] == TransactionType.TOKEN_TX.value:
-        _process_token_tx(tx)
-    elif json["type"] == TransactionType.FILE_TX.value:
-        _process_file_tx(tx)
+    if isinstance(tx, TokenTX):
+        print(colored("TokenTX", "green"))
+        return _process_token_tx(tx)
+    elif isinstance(tx, FileTransaction):
+        print(colored("FileTX", "green"))
+        return _process_file_tx(tx)
 
 
 def _load_tx_from_json(json):
@@ -94,12 +101,12 @@ def _propagate_tx(node_address, tx_json):
                              json=tx_json)
 
     if response.status_code == 201:
-        print("Sent tx to:", node_address)
+        print(colored("Sent!", "green"))
         # TODO: What code to signal already in mempool?
     elif response.status_code == 409:
         return
     else:
-        print("Failed to send tx to:", node_address)
+        print(colored("Failed to send!", "red"))
 
 
 # TODO: Add a cost to these transactions that goes to the miner.
@@ -116,7 +123,6 @@ def _process_file_tx(file_tx):
 
         # Is valid - add to mempool.
         blockchain.memory_pool.add(file_tx)
-
         return True
 
     except InvalidSignature:

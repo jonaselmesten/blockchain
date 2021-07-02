@@ -54,35 +54,41 @@ def send_transaction(receiver, amount):
     @param amount: Amount to send.
     """
     try:
+        print("Sending....")
         new_tx = wallet.prepare_tx(receiver, amount)
         response = requests.post(blockchain_address + "/new_transaction",
                                  headers={'Content-type': 'application/json'},
                                  json=new_tx.serialize())
+
+        print("After!")
+        print(response.status_code)
+    except NotEnoughFundsException as e:
+        print(e)
+    except Exception as e:
+        print(e)
+
+
+def send_file_transaction(file):
+    file_tx = FileTransaction(file)
+    wallet.sign_file_transaction(file_tx)
+    receiver_wallet.sign_file_transaction(file_tx)
+
+    try:
+        response = requests.post(blockchain_address + "/new_transaction",
+                                 headers={'Content-type': 'application/json'},
+                                 json=file_tx.serialize())
 
         print(response.status_code)
     except NotEnoughFundsException:
         pass
 
 
+file = "../file.pdf"
 
-
-
-blockchain = Blockchain()
-start_wallet = PrivateWallet.from_seed_phrase(["a", "a", "a", "a", "a"])
-blockchain.create_genesis_block(start_wallet)
-
-file_tx = FileTransaction("../file.pdf")
-wallet.sign_file_transaction(file_tx)
-receiver_wallet.sign_file_transaction(file_tx)
-
-print(file_tx)
-
-print(1 == TransactionType.TOKEN_TX)
-print(TransactionType.FILE_TX.value)
-
-json = file_tx.serialize()
-tx = FileTransaction.from_json(json)
-
+update_balance()
+#send_transaction(receiver_pk, 100.0)
+# TODO: TX now propagets to all. but failes to mine
+send_file_transaction(file)
 
 def test():
     send_transaction(receiver_pk, 100.0)
@@ -90,5 +96,3 @@ def test():
                            send_funds_func=send_transaction,
                            public_address=public_key,
                            temp_rec_addr=receiver_pk)
-
-

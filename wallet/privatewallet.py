@@ -83,13 +83,14 @@ class PrivateWallet:
         hashed_pk = apply_sha256(self.pk_str)
 
         for tx_output in self.unspent_tx:
-
             if tx_output.receiver != hashed_pk:
                 continue
 
             total += tx_output.amount
             tx_inputs.append(tx_output)
             tx_remove.append(tx_output)
+
+            print(total)
 
             if total > amount:
                 break

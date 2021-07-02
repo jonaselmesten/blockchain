@@ -151,7 +151,7 @@ def blockchain_to_json():
 
     return json.dumps({"length": str(len(chain_data)),
                        "blocks": chain_data,
-                       "data": blockchain.data,
+                       "data": blockchain.data_position,
                        "utxo": list(blockchain.unspent_tx),
                        "peers": peer_list},
                       default=JsonSerializable.dumper,

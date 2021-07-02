@@ -26,8 +26,6 @@ class Blockchain:
         self.chain = []
         self.coinbase = PrivateWallet(["genesis", "genesis", "genesis", "genesis", "genesis"], self)
         self.tx_position = {}
-
-
         self.data_position = {}
         # pub_key : block_idx
         # BLOCK: pub_key : [[time, data], [time, data]]

@@ -24,19 +24,13 @@ class Blockchain:
         self.unspent_tx = ordered_set.OrderedSet()
         self.memory_pool = ordered_set.OrderedSet()
         self.chain = []
-        self.data = {}
         self.coinbase = PrivateWallet(["genesis", "genesis", "genesis", "genesis", "genesis"], self)
         self.tx_position = {}
 
-    def print_data(self, wallet_public_key):
 
-        key_hash = public_key_to_string(wallet_public_key)
-
-        print("Data written by ", key_hash[0:6], ":")
-        for block_index in self.data[key_hash]:
-            print("Block ", block_index, ":")
-            for data_line in self.chain[block_index].data[key_hash]:
-                print(data_line)
+        self.data_position = {}
+        # pub_key : block_idx
+        # BLOCK: pub_key : [[time, data], [time, data]]
 
     def create_genesis_block(self, first_wallet):
         amount = 21000000
@@ -55,10 +49,6 @@ class Blockchain:
     @property
     def last_block(self):
         return self.chain[-1]
-
-    @staticmethod
-    def calculate_data_cost(data):
-        return getsizeof(data)
 
     @classmethod
     def is_valid_proof(cls, block, block_hash):

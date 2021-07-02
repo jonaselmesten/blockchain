@@ -9,7 +9,7 @@ from chain.exceptions import UtxoNotFoundError, UtxoError
 from server.consensus import mine
 from server.node import blockchain, peers
 from transaction.exceptions import NotEnoughFundsException
-from transaction.tx import TokenTX
+from transaction.tx import TokenTX, FileTransaction, TransactionType
 from transaction.tx_output import TransactionOutput
 from util.hash_util import apply_sha256, signature_algorithm
 from util.serialize import JsonSerializable
@@ -19,58 +19,125 @@ tx_api = Blueprint("tx_api", __name__, template_folder="server")
 
 @tx_api.route('/pending_tx')
 def get_pending_tx():
+    """
+    See all the current pending transactions on the block chain.
+    @return: JSON dump of the mempool.
+    """
     return json.dumps(list(blockchain.memory_pool),
                       default=JsonSerializable.dumper,
                       indent=4)
 
 
 @tx_api.route('/new_transaction', methods=['POST'])
-def new_transaction():
-
+def new_token_transaction():
+    """
+    Call that will handle new transactions being submitted to the network.
+    Will check if transaction already exists in the mempool before starting the validaton process.
+    Validated transactions end up in the mempool, otherwise it'll just be discarded.
+    @return: 201 - Success  409 - Already in mempool    400 - Invalid transaction.
+    """
     tx_json = request.get_json()
     tx_loaded = json.loads(tx_json)
-    tx = TokenTX.from_json(tx_loaded)
+    tx = _load_tx_from_json(tx_loaded)
 
     if tx in blockchain.memory_pool:
         return "Tx already in mempool", 409
 
-    if process_tx(tx):
+    if _process_tx(tx):
         print("Transaction valid - Added to mempool.")
 
         for node in peers:
-            propagate_tx(node, tx_json)
+            _propagate_tx(node, tx_json)
     else:
         return "Invalid transaction", 400
 
+    # TODO: Temporary for testing
     if len(blockchain.memory_pool) >= 1:
         mine()
 
     return "Success", 201
 
 
-def propagate_tx(node_address, tx_json):
+def _process_tx(tx):
+    """
+    Function to choose the correct processing method for the supported transactions.
+    @param tx: Transaction as JSON.
+    """
+    if json["type"] == TransactionType.TOKEN_TX.value:
+        _process_token_tx(tx)
+    elif json["type"] == TransactionType.FILE_TX.value:
+        _process_file_tx(tx)
 
+
+def _load_tx_from_json(json):
+    """
+    Loads the right type of transaction give its transaction type value.
+    @param json: Transaction as JSON.
+    @return: Transaction instance.
+    """
+    if json["type"] == TransactionType.TOKEN_TX.value:
+        return TokenTX.from_json(json)
+    elif json["type"] == TransactionType.FILE_TX.value:
+        return FileTransaction.from_json(json)
+
+
+def _propagate_tx(node_address, tx_json):
+    """
+    Function to propagate valid transactions across the networks nodes.
+    Will test all current peers that the node is aware of.
+    @param node_address: IP-address of node.
+    @param tx_json: Transaction as JSON.
+    @return: 201 - Success  409 - Already in mempool.
+    """
     response = requests.post(node_address + "/new_transaction",
                              headers={'Content-type': 'application/json'},
                              json=tx_json)
 
     if response.status_code == 201:
         print("Sent tx to:", node_address)
-
         # TODO: What code to signal already in mempool?
     elif response.status_code == 409:
         return
     else:
         print("Failed to send tx to:", node_address)
 
-# TODO: Change mempool to list to preserve order.
-def process_tx(transaction):
 
+# TODO: Add a cost to these transactions that goes to the miner.
+def _process_file_tx(file_tx):
+    """
+    Function for processing and validating a file transaction.
+    It checks all the signatures of the transaction.
+    Will be added to mempool if it's valid.
+    @param file_tx: FileTransaction instance.
+    @return: True if valid, false if not.
+    """
+    try:
+        _file_tx_is_valid(file_tx)
+
+        # Is valid - add to mempool.
+        blockchain.memory_pool.add(file_tx)
+
+        return True
+
+    except InvalidSignature:
+        print("Invalid signature - Transaction failed.")
+        return False
+
+
+# TODO: Change mempool to list to preserve order.
+def _process_token_tx(transaction):
+    """
+    Function to process and validate a TokenTX.
+    Will check that referenced input-transactions exist and are valid in the block chain.
+    Will be added to the mempool if it's valid.
+    @param transaction: TokenTX instance.
+    @return: True if valid, false if not.
+    """
     sender = apply_sha256(transaction.sender)
     tx_total = 0
 
     try:
-        _transaction_is_valid(transaction)
+        _token_tx_is_valid(transaction)
 
         # Check that all input is valid.
         for input_tx in transaction.tx_inputs:
@@ -88,7 +155,7 @@ def process_tx(transaction):
 
             # Check if parent TX is valid.
             origin_tx = blockchain.chain[block_idx].transactions[tx_idx]
-            _transaction_is_valid(origin_tx)
+            _token_tx_is_valid(origin_tx)
 
             tx_total += input_tx.amount
 
@@ -124,6 +191,14 @@ def process_tx(transaction):
 
 
 def _add_utxo_to_tx(transaction, sender_amount, recipient_amount, miner_amount):
+    """
+    Creates and adds the UTXO to the transaction.
+    @param transaction: TokenTX instance.
+    @param sender_amount: Amount to send.
+    @param recipient_amount: Amount to receive.
+    @param miner_amount: Miners fee.
+    @return: UTXO for the sender.
+    """
     recipient_utxo = TransactionOutput(apply_sha256(transaction.receiver), recipient_amount, transaction.tx_id, 0)
     sender_utxo = TransactionOutput(apply_sha256(transaction.sender), sender_amount, transaction.tx_id, 1)
     # miner_utxo = TransactionOutput(apply_sha256(self.coinbase.pk_str), miner_amount, transaction.tx_id, 2)
@@ -133,6 +208,21 @@ def _add_utxo_to_tx(transaction, sender_amount, recipient_amount, miner_amount):
     return TransactionOutput(apply_sha256(transaction.sender), sender_amount, transaction.tx_id, 1)
 
 
-def _transaction_is_valid(transaction):
+def _token_tx_is_valid(transaction):
+    """
+    Validates TokenTX.
+    @param transaction: TokenTX instance.
+    """
     public_key = serialization.load_pem_public_key(transaction.sender.encode())
     public_key.verify(transaction.signature, bytes(transaction.get_sign_data(), "utf-8"), signature_algorithm)
+
+
+def _file_tx_is_valid(file_tx):
+    """
+    Validates FileTransaction.
+    @param file_tx: FileTransaction instance.
+    """
+    sign_data = bytes(file_tx.get_sign_data(), "utf-8")
+    for public_key_str, signature in zip(file_tx.public_keys, file_tx.signatures):
+        pk = serialization.load_pem_public_key(public_key_str.encode())
+        pk.verify(signature, sign_data, signature_algorithm)

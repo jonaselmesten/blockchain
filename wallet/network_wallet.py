@@ -1,9 +1,11 @@
 import json
+from collections import namedtuple
 
 import requests
 from cryptography.hazmat.primitives import serialization
 
-from transaction.tx import FileTransaction
+from chain.blockchain import Blockchain
+from transaction.tx import FileTransaction, TransactionType
 from util.hash_util import public_key_to_string, signature_algorithm
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
@@ -62,20 +64,24 @@ def send_transaction(receiver, amount):
         pass
 
 
-def is_valid_file_transaction(file_tx):
 
-    sign_data = bytes(file_tx.get_sign_data(), "utf-8")
-    for public_key_str, signature in zip(file_tx.public_keys, file_tx.signatures):
-        pk = serialization.load_pem_public_key(public_key_str.encode())
-        pk.verify(signature, sign_data, signature_algorithm)
 
+
+blockchain = Blockchain()
+start_wallet = PrivateWallet.from_seed_phrase(["a", "a", "a", "a", "a"])
+blockchain.create_genesis_block(start_wallet)
 
 file_tx = FileTransaction("../file.pdf")
 wallet.sign_file_transaction(file_tx)
 receiver_wallet.sign_file_transaction(file_tx)
 
 print(file_tx)
-is_valid_file_transaction(file_tx)
+
+print(1 == TransactionType.TOKEN_TX)
+print(TransactionType.FILE_TX.value)
+
+json = file_tx.serialize()
+tx = FileTransaction.from_json(json)
 
 
 def test():

@@ -9,14 +9,19 @@ class Window(QMainWindow):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        loadUi("te.ui", self)
-        self.connectSignalsSlots()
+        loadUi("main_window.ui", self)
+        #self.connectSignalsSlots()
 
-    def connectSignalsSlots(self):
-        self.button.clicked.connect(self.print_something)
+    #def connectSignalsSlots(self):
+        #self.button.clicked.connect(self.print_something)
 
     def print_something(self):
         print("HAHAH")
+        #text = self.amount.text()
+        #self.online.setChecked(True)
+        #print(type(text))
+        #print(len(text))
+        #print(self.amount.text())
 
 
 app = QApplication(sys.argv)

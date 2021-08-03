@@ -7,8 +7,10 @@ from node.chain.block import Block
 from node.chain.blockchain import Blockchain
 from node.chain.exceptions import BlockHashError
 from node.chain.header import BlockHeader
-from node.server.node import peers, blockchain
+from node.server.chain import peers
 from transaction.tx_output import TransactionOutput
+from util.serialize import JsonSerializable
+from wallet.network import genesis_wallet
 
 peers_api = Blueprint("peers_api", __name__, template_folder="server")
 
@@ -164,7 +166,7 @@ def create_chain_from_dump(chain_dump):
     @return: Generated blockchain.
     """
     generated_blockchain = Blockchain()
-    generated_blockchain.create_genesis_block(start_wallet)
+    generated_blockchain.create_genesis_block(genesis_wallet)
 
     generated_blockchain.data = chain_dump["data"]
     unspent_tx = set()

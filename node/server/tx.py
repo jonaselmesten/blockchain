@@ -6,7 +6,7 @@ from flask import request, Blueprint
 from termcolor import colored
 
 from node.chain.exceptions import UtxoNotFoundError, UtxoError
-from node.server.node import blockchain, peers
+from node.server.chain import blockchain, peers
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
 from transaction.type import CoinTX, FileTransaction, TransactionType
@@ -128,7 +128,6 @@ def _process_file_tx(file_tx):
     except InvalidSignature:
         print("Invalid signature - Transaction failed.")
         return False
-
 
 # TODO: Change mempool to list to preserve order.
 def _process_token_tx(transaction):

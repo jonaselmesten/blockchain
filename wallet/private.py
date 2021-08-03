@@ -3,7 +3,7 @@ from time import time
 from transaction.exceptions import NotEnoughFundsException
 from transaction.type import CoinTX
 from util.hash import public_key_to_string, apply_sha256
-from wallet.crypto import KeyPair, random_bip_word_sequence, _bip39wordlist
+from wallet.crypto import KeyPair, random_bip_word_sequence, _bip39wordlist, verify_transaction
 
 
 class PrivateWallet:
@@ -56,6 +56,10 @@ class PrivateWallet:
     def coinbase_wallet(cls):
         return PrivateWallet(word_list=_bip39wordlist[0:24])
 
+    @classmethod
+    def genesis_wallet(cls):
+        return PrivateWallet(word_list=_bip39wordlist[1:25])
+
     def sign_transaction(self, transaction):
         """
         Sign a transaction with this wallet.
@@ -100,8 +104,6 @@ class PrivateWallet:
             tx_inputs.append(tx_output)
             tx_remove.append(tx_output)
 
-            print(total)
-
             if total > amount:
                 break
 
@@ -111,7 +113,8 @@ class PrivateWallet:
         for tx_output in tx_remove:
             self.unspent_tx.remove(tx_output)
 
-        new_tx = CoinTX(self.pk_str, recipient, amount, tx_inputs)
+        new_tx = CoinTX(self.pk_str, recipient.pk_str, amount, tx_inputs)
+
         self.sign_transaction(new_tx)
 
         return new_tx
@@ -129,8 +132,3 @@ class PrivateWallet:
                 total += tx_output.amount
 
         return total
-
-
-
-
-

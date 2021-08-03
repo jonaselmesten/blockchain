@@ -26,13 +26,13 @@ class Blockchain:
         self.tx_position = {}
         self.data_position = {}
 
-    def create_genesis_block(self, first_wallet, coin_base):
+    def create_genesis_block(self, first_wallet, coinbase):
         amount = 21000000
 
-        genesis_tx = CoinTX(coin_base.pk_str, first_wallet.pk_str, amount, [])
+        genesis_tx = CoinTX(coinbase.pk_str, first_wallet.pk_str, amount, [])
         genesis_block = Block(0, [genesis_tx], "0")
 
-        coin_base.sign_transaction(genesis_tx)
+        coinbase.sign_transaction(genesis_tx)
 
         self.unspent_tx.add(TransactionOutput(apply_sha256(first_wallet.pk_str), amount, genesis_tx.tx_id, 0))
         self.tx_position[genesis_tx.tx_id] = TXPosition(0, 0)

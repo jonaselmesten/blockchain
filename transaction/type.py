@@ -68,7 +68,6 @@ class CoinTX(JsonSerializable, Transaction):
         @return: Sha hash string.
         """
         # TODO: Include more members in sign data.
-
         data = apply_sha256(self.sender + self.receiver + str(self.amount))
         return data
 

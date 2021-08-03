@@ -5,12 +5,14 @@ import requests
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
 from transaction.type import FileTransaction
+from wallet.crypto import verify_transaction
 from wallet.private import PrivateWallet
 
 _blockchain_address = "http://127.0.0.1:8000/"
 _headers = {'Content-Type': "application/json"}
+
 coinbase = PrivateWallet.coinbase_wallet()
-start_wallet = PrivateWallet.random_wallet()
+genesis_wallet = PrivateWallet.genesis_wallet()
 
 
 # TODO: Implement SPV-wallet.
@@ -46,14 +48,13 @@ def send_transaction(wallet, receiver, amount):
     @param amount: Amount to send.
     """
     try:
-        print("Sending....")
-        new_tx = wallet.prepare_tx(receiver, amount)
+        new_tx = wallet.prepare_tx(receiver, float(amount))
+        print(new_tx.serialize())
         response = requests.post(_blockchain_address + "/new_transaction",
                                  headers={'Content-type': 'application/json'},
                                  json=new_tx.serialize())
 
-        print("After!")
-        print(response.status_code)
+        print("Sent TX - ", response.status_code)
     except NotEnoughFundsException as e:
         print(e)
     except Exception as e:

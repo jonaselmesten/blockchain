@@ -2,7 +2,7 @@ import json
 
 from flask import request, Blueprint
 
-from node.server.node import blockchain
+from node.server.chain import blockchain
 from util.hash import apply_sha256
 from util.serialize import JsonSerializable
 
@@ -17,6 +17,7 @@ def get_balance():
 
     # Add all UTXO
     for tx_output in blockchain.unspent_tx:
+        print(tx_output.receiver[0:10], public_key[0:10])
         if tx_output.receiver == public_key:
             total += tx_output.amount
             utxo.append(tx_output)

@@ -1,9 +1,9 @@
 import json
 
 from flask import request, Blueprint
-from util.hash_util import apply_sha256
 
 from node.server.node import blockchain
+from util.hash import apply_sha256
 from util.serialize import JsonSerializable
 
 wallet_api = Blueprint("wallet_api", __name__, template_folder="server")

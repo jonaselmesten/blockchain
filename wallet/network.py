@@ -5,9 +5,12 @@ import requests
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
 from transaction.type import FileTransaction
+from wallet.private import PrivateWallet
 
 _blockchain_address = "http://127.0.0.1:8000/"
 _headers = {'Content-Type': "application/json"}
+coinbase = PrivateWallet.coinbase_wallet()
+start_wallet = PrivateWallet.random_wallet()
 
 
 # TODO: Implement SPV-wallet.

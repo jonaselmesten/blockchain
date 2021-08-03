@@ -3,7 +3,7 @@ from time import time
 from transaction.exceptions import NotEnoughFundsException
 from transaction.type import CoinTX
 from util.hash import public_key_to_string, apply_sha256
-from wallet.crypto import KeyPair
+from wallet.crypto import KeyPair, random_bip_word_sequence, _bip39wordlist
 
 
 class PrivateWallet:
@@ -49,17 +49,21 @@ class PrivateWallet:
         :param words: Array with words. ["word1", "word2", ...]
         :return: PrivateWallet instance.
         """
-        wallet = PrivateWallet(key_pair=KeyPair.generate_random())
+        wallet = PrivateWallet(word_list=random_bip_word_sequence())
         return wallet
 
-    def _sign_transaction(self, transaction):
+    @classmethod
+    def coinbase_wallet(cls):
+        return PrivateWallet(word_list=_bip39wordlist[0:24])
+
+    def sign_transaction(self, transaction):
         """
         Sign a transaction with this wallet.
         Will add a signature to the transaction object.
         :param transaction: Transaction object instance.
         """
         sign_data = transaction.get_sign_data()
-        signature = self.key_pair.sign_data(bytes(sign_data, "utf-8"))
+        signature = self.key_pair.create_signature(bytes(sign_data, "utf-8"))
         transaction.signature = signature
         transaction.time_stamp = time().hex()
 
@@ -70,7 +74,7 @@ class PrivateWallet:
         :param transaction: File-transaction object instance.
         """
         sign_data = transaction.get_sign_data()
-        signature = self.key_pair.sign_data(bytes(sign_data, "utf-8"))
+        signature = self.key_pair.create_signature(bytes(sign_data, "utf-8"))
         transaction.signatures.append(signature)
         transaction.time_stamps.append(time().hex())
         transaction.public_keys.append(self.pk_str)
@@ -108,7 +112,7 @@ class PrivateWallet:
             self.unspent_tx.remove(tx_output)
 
         new_tx = CoinTX(self.pk_str, recipient, amount, tx_inputs)
-        self._sign_transaction(new_tx)
+        self.sign_transaction(new_tx)
 
         return new_tx
 
@@ -125,6 +129,8 @@ class PrivateWallet:
                 total += tx_output.amount
 
         return total
+
+
 
 
 

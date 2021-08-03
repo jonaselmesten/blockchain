@@ -40,14 +40,6 @@ class KeyPair:
         return KeyPair(private_key, public_key)
 
     @classmethod
-    def generate_random(cls):
-        """
-        Generates a key pair with a random private key.
-        @return: KeyPair instance.
-        """
-        return KeyPair.from_seed_phrase(_random_bip_word_sequence())
-
-    @classmethod
     def from_file(cls, key_file):
         """
         Creates a key pair from an array of seed words.
@@ -74,7 +66,7 @@ class KeyPair:
             )
         key_file.write(pem)
 
-    def sign_data(self, data):
+    def create_signature(self, data):
         """
         Sign some data with the private key and generate a signature.
         @param data: Data to sign (bytes).
@@ -124,8 +116,6 @@ def _generate_private_number(word_list):
     @param word_list: List of strings. Needs to be bigger than 5.
     @return: Private number as int.
     """
-    if len(word_list) < 11:
-        raise TypeError("Too few")
 
     value = 0
 
@@ -133,7 +123,7 @@ def _generate_private_number(word_list):
 
         for char in word:
             value += ord(char)
-            value *= ord(char)
+            value *= 3
 
     while value < 10000000000000000000000000:
         value *= 44
@@ -2193,7 +2183,7 @@ _bip39wordlist = [
 ]
 
 
-def _random_bip_word_sequence(word_count=24):
+def random_bip_word_sequence(word_count=24):
     """
     Creates a random seed phrase with bip39-words.
     @param word_count: Number of words in the seed.

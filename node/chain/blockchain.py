@@ -1,16 +1,17 @@
 from collections import namedtuple
 
 import ordered_set
-from util.hash_util import apply_sha256
 
 from node.chain.block import Block
 from transaction.tx_output import TransactionOutput
-from transaction.type import TokenTX
+from transaction.type import CoinTX
 
 # Because UTXOs are needed to verify every transaction
 # your node receives, the UTXOs are stored in their own database.
 # The UTXO database is also loaded in to RAM when you run_node bitcoind,
 # which further helps to speed up verification.
+from util.hash import apply_sha256
+
 TXPosition = namedtuple("TXPosition", ("block_idx", "tx_idx"))
 
 
@@ -25,13 +26,13 @@ class Blockchain:
         self.tx_position = {}
         self.data_position = {}
 
-    def create_genesis_block(self, first_wallet):
+    def create_genesis_block(self, first_wallet, coin_base):
         amount = 21000000
 
-        genesis_tx = TokenTX(coinbase.pk_str, first_wallet.pk_str, amount, [])
+        genesis_tx = CoinTX(coin_base.pk_str, first_wallet.pk_str, amount, [])
         genesis_block = Block(0, [genesis_tx], "0")
 
-        self.coinbase.sign_transaction(genesis_tx)
+        coin_base.sign_transaction(genesis_tx)
 
         self.unspent_tx.add(TransactionOutput(apply_sha256(first_wallet.pk_str), amount, genesis_tx.tx_id, 0))
         self.tx_position[genesis_tx.tx_id] = TXPosition(0, 0)

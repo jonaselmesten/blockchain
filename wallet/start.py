@@ -10,7 +10,7 @@ from wallet.private import PrivateWallet
 wallet = PrivateWallet.from_file("key/private_key.txt")
 public_key = public_key_to_string(wallet.public_key)
 
-receiver_wallet = PrivateWallet.from_seed_phrase(["wallet", "a", "a", "a", "a"])
+receiver_wallet = PrivateWallet.random_wallet()
 receiver_pk = public_key_to_string(receiver_wallet.public_key)
 
 balance = 22

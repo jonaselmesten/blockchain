@@ -42,6 +42,17 @@ class PrivateWallet:
         """
         return PrivateWallet(word_list=words)
 
+    @classmethod
+    def random_wallet(cls):
+        """
+        Initialize the wallet with seed phrase.
+        :param words: Array with words. ["word1", "word2", ...]
+        :return: PrivateWallet instance.
+        """
+        wallet = PrivateWallet()
+        wallet.key_pair = KeyPair.generate_random()
+        return wallet
+
     def _sign_transaction(self, transaction):
         """
         Sign a transaction with this wallet.

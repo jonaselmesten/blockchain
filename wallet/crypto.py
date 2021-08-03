@@ -19,11 +19,9 @@ class KeyPair:
         self.private_key = private_key
         self.public_key = public_key
 
-    @property
     def public_key(self):
         return self.public_key
 
-    @property
     def private_key(self):
         raise AttributeError("This should never be accessed.")
 
@@ -105,8 +103,8 @@ def verify_signature(public_key_str, signature, sign_data):
     @param signature: Signature (bytes)
     @param sign_data: Data that was signed (bytes)
     """
-    pk = serialization.load_pem_public_key(public_key_str.encode())
-    pk.verify(signature, sign_data, SIGN_ALGO)
+    public_key = serialization.load_pem_public_key(public_key_str.encode())
+    public_key.verify(signature, sign_data, SIGN_ALGO)
 
 
 # TODO: Merge this with the method above.

@@ -1,21 +1,21 @@
 from time import time
 
-from cryptography.hazmat.primitives import serialization
-
 from transaction.exceptions import NotEnoughFundsException
 from transaction.type import CoinTX
 from util.hash import public_key_to_string, apply_sha256
-from wallet.crypto import KeyPair, SIGN_ALGO
+from wallet.crypto import KeyPair
 
 
 class PrivateWallet:
 
-    def __init__(self, word_list=None, key_file=None):
+    def __init__(self, word_list=None, key_file=None, key_pair=None):
 
         if word_list:
             self.key_pair = KeyPair.from_seed_phrase(word_list)
         elif key_file:
             self.key_pair = KeyPair.from_file(key_file)
+        elif key_pair:
+            self.key_pair = key_pair
 
         self.unspent_tx = []
         self.pk_str = public_key_to_string(self.key_pair.public_key)
@@ -49,8 +49,7 @@ class PrivateWallet:
         :param words: Array with words. ["word1", "word2", ...]
         :return: PrivateWallet instance.
         """
-        wallet = PrivateWallet()
-        wallet.key_pair = KeyPair.generate_random()
+        wallet = PrivateWallet(key_pair=KeyPair.generate_random())
         return wallet
 
     def _sign_transaction(self, transaction):

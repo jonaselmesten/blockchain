@@ -2203,7 +2203,7 @@ def _random_bip_word_sequence(word_count=24):
     word_list = []
     word_len = len(_bip39wordlist)
 
-    while len(word_count) < 24:
+    while len(word_list) < word_count:
         word = _bip39wordlist[random.randrange(word_len)]
         used_words.add(word)
         word_list.append(word)

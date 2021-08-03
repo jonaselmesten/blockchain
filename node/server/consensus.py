@@ -4,6 +4,7 @@ from node.chain.block import Block
 from node.chain.blockchain import Blockchain, TXPosition
 from node.chain.header import BlockHeader
 from node.server.node import blockchain
+from util.hash import merkle_root
 
 consensus_api = Blueprint("consensus_api", __name__, template_folder="server")
 

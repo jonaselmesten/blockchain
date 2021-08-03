@@ -7,6 +7,12 @@ from termcolor import colored
 
 from node.chain.exceptions import UtxoNotFoundError, UtxoError
 from node.server.node import blockchain, peers
+from transaction.exceptions import NotEnoughFundsException
+from transaction.tx_output import TransactionOutput
+from transaction.type import CoinTX, FileTransaction, TransactionType
+from util.hash import apply_sha256
+from util.serialize import JsonSerializable
+from wallet.crypto import verify_transaction, verify_signature
 
 tx_api = Blueprint("tx_api", __name__, template_folder="server")
 
@@ -62,7 +68,7 @@ def _process_tx(tx):
     Function to choose the correct processing method for the supported transactions.
     @param tx: Transaction as JSON.
     """
-    if isinstance(tx, TokenTX):
+    if isinstance(tx, CoinTX):
         print(colored("TokenTX", "green"))
         return _process_token_tx(tx)
     elif isinstance(tx, FileTransaction):
@@ -77,7 +83,7 @@ def _load_tx_from_json(json):
     @return: Transaction instance.
     """
     if json["type"] == TransactionType.TOKEN_TX.value:
-        return TokenTX.from_json(json)
+        return CoinTX.from_json(json)
     elif json["type"] == TransactionType.FILE_TX.value:
         return FileTransaction.from_json(json)
 

@@ -5,7 +5,7 @@ from cryptography.hazmat.primitives import serialization
 from transaction.exceptions import NotEnoughFundsException
 from transaction.type import CoinTX
 from util.hash import public_key_to_string, apply_sha256
-from wallet.crypto import KeyPair
+from wallet.crypto import KeyPair, SIGN_ALGO
 
 
 class PrivateWallet:
@@ -117,11 +117,4 @@ class PrivateWallet:
         return total
 
 
-def verify_signature(public_key_str, signature, sign_data):
-    pk = serialization.load_pem_public_key(public_key_str.encode())
-    pk.verify(signature, sign_data, SIGN_ALGO)
 
-
-def verify_transaction(transaction):
-    public_key = serialization.load_pem_public_key(transaction.sender.encode())
-    public_key.verify(transaction.signature, bytes(transaction.get_sign_data(), "utf-8"), SIGN_ALGO)

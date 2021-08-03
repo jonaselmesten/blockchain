@@ -1,6 +1,6 @@
 import json
 
-from util.hash_util import apply_sha256
+from util.hash import apply_sha256
 from util.serialize import JsonSerializable
 
 
@@ -35,4 +35,3 @@ class TransactionOutput(JsonSerializable):
                and self.amount == other.amount \
                and self.parent_tx_id == other.parent_tx_id \
                and self.vout == other.vout
-

@@ -1,15 +1,29 @@
-import json
-
-import requests
 from flask import request, Blueprint
 
-from chain.block import Block
-from chain.blockchain import Blockchain, TXPosition
-from chain.header import BlockHeader
-from server.node import peers, blockchain
-from util.hash_util import merkle_root
+from node.chain.block import Block
+from node.chain.blockchain import Blockchain, TXPosition
+from node.chain.header import BlockHeader
+from node.server.node import blockchain
 
 consensus_api = Blueprint("consensus_api", __name__, template_folder="server")
+
+from _thread import *
+import datetime as dt
+
+def wait_to_mine():
+    print("Waiting to mine...")
+    current_min = dt.datetime.now().second
+
+    while True:
+        new_min = dt.datetime.now().second
+        if new_min % 15 == 0 and new_min != current_min:
+            mine()
+            current_min = new_min
+
+try:
+    start_new_thread(wait_to_mine, ())
+except:
+    print("Could not run mine thread.")
 
 
 def mine():
@@ -21,6 +35,7 @@ def mine():
     print("Starting to mine block:", len(blockchain.chain))
 
     if len(blockchain.memory_pool) == 0:
+        print("No transactions to mine - aborting.")
         return
 
     # Gather all tx ids.

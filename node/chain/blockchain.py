@@ -1,13 +1,11 @@
 from collections import namedtuple
-from sys import getsizeof
 
 import ordered_set
+from util.hash_util import apply_sha256
 
-from chain.block import Block
-from util.hash_util import public_key_to_string, merkle_root, apply_sha256
-from transaction.tx import TokenTX
+from node.chain.block import Block
 from transaction.tx_output import TransactionOutput
-from wallet.privatewallet import PrivateWallet
+from transaction.type import TokenTX
 
 # Because UTXOs are needed to verify every transaction
 # your node receives, the UTXOs are stored in their own database.
@@ -24,16 +22,13 @@ class Blockchain:
         self.unspent_tx = ordered_set.OrderedSet()
         self.memory_pool = ordered_set.OrderedSet()
         self.chain = []
-        self.coinbase = PrivateWallet(["genesis", "genesis", "genesis", "genesis", "genesis"], self)
         self.tx_position = {}
         self.data_position = {}
-        # pub_key : block_idx
-        # BLOCK: pub_key : [[time, data], [time, data]]
 
     def create_genesis_block(self, first_wallet):
         amount = 21000000
 
-        genesis_tx = TokenTX(self.coinbase.pk_str, first_wallet.pk_str, amount, [])
+        genesis_tx = TokenTX(coinbase.pk_str, first_wallet.pk_str, amount, [])
         genesis_block = Block(0, [genesis_tx], "0")
 
         self.coinbase.sign_transaction(genesis_tx)

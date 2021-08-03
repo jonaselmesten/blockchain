@@ -1,21 +1,20 @@
 import json
-from collections import namedtuple
+import sys
 
 import requests
-from cryptography.hazmat.primitives import serialization
+from PyQt5.QtWidgets import QApplication
 
-from chain.blockchain import Blockchain
-from transaction.tx import FileTransaction, TransactionType
-from util.hash_util import public_key_to_string, signature_algorithm
+from gui.windows import MainWin
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
-from wallet.gui import WalletGUI
-from wallet.privatewallet import PrivateWallet
+from transaction.type import FileTransaction
+from util.hash import public_key_to_string
+from wallet.private import PrivateWallet
 
 blockchain_address = "http://127.0.0.1:8000/"
 headers = {'Content-Type': "application/json"}
 
-wallet = PrivateWallet.from_seed_phrase(["a", "a", "a", "a", "a"])
+wallet = PrivateWallet.from_file("key/private_key.txt")
 public_key = public_key_to_string(wallet.public_key)
 
 receiver_wallet = PrivateWallet.from_seed_phrase(["wallet", "a", "a", "a", "a"])
@@ -83,16 +82,9 @@ def send_file_transaction(file):
         pass
 
 
-file = "../file.pdf"
+balance = 22
 
-update_balance()
-#send_transaction(receiver_pk, 100.0)
-# TODO: TX now propagets to all. but failes to mine
-send_file_transaction(file)
-
-def test():
-    send_transaction(receiver_pk, 100.0)
-    gui_wallet = WalletGUI(balance_func=update_balance,
-                           send_funds_func=send_transaction,
-                           public_address=public_key,
-                           temp_rec_addr=receiver_pk)
+app = QApplication(sys.argv)
+window = MainWin(public_key, balance, send_transaction)
+window.show()
+app.exec()

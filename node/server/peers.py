@@ -3,13 +3,12 @@ import json
 import requests
 from flask import request, Blueprint
 
-from chain.block import Block
-from chain.blockchain import Blockchain
-from chain.exceptions import BlockHashError
-from chain.header import BlockHeader
-from server.node import start_wallet, peers, blockchain
+from node.chain.block import Block
+from node.chain.blockchain import Blockchain
+from node.chain.exceptions import BlockHashError
+from node.chain.header import BlockHeader
+from node.server.node import peers, blockchain
 from transaction.tx_output import TransactionOutput
-from util.serialize import JsonSerializable
 
 peers_api = Blueprint("peers_api", __name__, template_folder="server")
 

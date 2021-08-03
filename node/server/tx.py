@@ -1,18 +1,12 @@
 import json
-from termcolor import colored
+
 import requests
 from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives import serialization
 from flask import request, Blueprint
+from termcolor import colored
 
-from chain.exceptions import UtxoNotFoundError, UtxoError
-from server.consensus import mine
-from server.node import blockchain, peers
-from transaction.exceptions import NotEnoughFundsException
-from transaction.tx import TokenTX, FileTransaction, TransactionType
-from transaction.tx_output import TransactionOutput
-from util.hash_util import apply_sha256, signature_algorithm
-from util.serialize import JsonSerializable
+from node.chain.exceptions import UtxoNotFoundError, UtxoError
+from node.server.node import blockchain, peers
 
 tx_api = Blueprint("tx_api", __name__, template_folder="server")
 
@@ -219,8 +213,7 @@ def _token_tx_is_valid(transaction):
     Validates TokenTX.
     @param transaction: TokenTX instance.
     """
-    public_key = serialization.load_pem_public_key(transaction.sender.encode())
-    public_key.verify(transaction.signature, bytes(transaction.get_sign_data(), "utf-8"), signature_algorithm)
+    verify_transaction(transaction)
 
 
 def _file_tx_is_valid(file_tx):
@@ -230,5 +223,5 @@ def _file_tx_is_valid(file_tx):
     """
     sign_data = bytes(file_tx.get_sign_data(), "utf-8")
     for public_key_str, signature in zip(file_tx.public_keys, file_tx.signatures):
-        pk = serialization.load_pem_public_key(public_key_str.encode())
-        pk.verify(signature, sign_data, signature_algorithm)
+        verify_signature(public_key_str, signature, sign_data)
+

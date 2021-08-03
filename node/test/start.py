@@ -1,14 +1,15 @@
 import json
 import random
 
-from chain.block import Block
-from chain.blockchain import Blockchain
-from chain.exceptions import BlockHashError
-from chain.header import BlockHeader
-from util.serialize import JsonSerializable
+from wallet.privatewallet import PrivateWallet
+
+from node.chain.block import Block
+from node.chain.blockchain import Blockchain
+from node.chain.exceptions import BlockHashError
+from node.chain.header import BlockHeader
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
-from wallet.privatewallet import PrivateWallet
+from util.serialize import JsonSerializable
 
 wallet1 = PrivateWallet(["jonas", "jonas", "jonas", "jonas", "jonas"])
 wallets = [wallet1]

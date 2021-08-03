@@ -3,11 +3,10 @@ import enum
 import json
 import time
 from abc import abstractmethod
-from json import loads
 
-from util.hash_util import apply_sha256, file_to_hash, public_key_to_string
-from util.serialize import JsonSerializable
 from transaction.tx_output import TransactionOutput
+from util.hash import apply_sha256, file_to_hash
+from util.serialize import JsonSerializable
 
 
 class Transaction(abc.ABC):
@@ -27,7 +26,7 @@ class TransactionType(enum.Enum):
     FILE_TX = 2
 
 
-class TokenTX(JsonSerializable, Transaction):
+class CoinTX(JsonSerializable, Transaction):
 
     def __init__(self, sender_pub, receiver_pub, amount, tx_inputs):
         self.sender = sender_pub
@@ -53,10 +52,10 @@ class TokenTX(JsonSerializable, Transaction):
         for tx_input in json["tx_inputs"]:
             tx_inputs.append(TransactionOutput.from_json(tx_input))
 
-        tx = TokenTX(json["sender"],
-                     json["receiver"],
-                     float(json["amount"]),
-                     tx_inputs)
+        tx = CoinTX(json["sender"],
+                    json["receiver"],
+                    float(json["amount"]),
+                    tx_inputs)
 
         tx.time_stamp = json["time_stamp"]
         tx.signature = bytes.fromhex(json["signature"])

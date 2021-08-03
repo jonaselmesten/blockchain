@@ -1,9 +1,9 @@
 from flask import Flask
 
-from server.consensus import consensus_api
-from server.peers import peers_api
-from server.tx import tx_api
-from server.wallet import wallet_api
+from node.server.consensus import consensus_api
+from node.server.peers import peers_api
+from node.server.tx import tx_api
+from node.server.wallet import wallet_api
 
 app = Flask(__name__)
 app.register_blueprint(tx_api)

@@ -1,28 +1,37 @@
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
+SIGN_ALGO = ec.ECDSA(hashes.SHA256())
+_curve = ec.SECP384R1()
+
 
 class KeyPair:
-    _curve = ec.SECP384R1()
-    _signature_algorithm = ec.ECDSA(hashes.SHA256())
 
     def __init__(self, private_key, public_key):
         """
-        Creates a key pair from a given seed phrase.
-        @param word_list: List of words used to create private key.
+        Cryptographic key pair consisting of a private & and a public key.
         """
         self.private_key = private_key
         self.public_key = public_key
 
+    def public_key(self):
+        return self.public_key
+
     @classmethod
     def from_seed_phrase(cls, word_list):
-        private_key = ec.derive_private_key(cls.generate_private_number(word_list),
-                                            KeyPair._curve,
+        """
+
+        :param word_list:
+        :return:
+        """
+        private_key = ec.derive_private_key(cls._generate_private_number(word_list),
+                                            _curve,
                                             default_backend())
         public_key = private_key.public_key()
+
         return KeyPair(private_key, public_key)
 
     @classmethod
@@ -31,10 +40,21 @@ class KeyPair:
             pem_lines = key_file.read()
         private_key = load_pem_private_key(pem_lines, None, default_backend())
         public_key = private_key.public_key()
+
         return KeyPair(private_key, public_key)
 
-    def public_key(self):
-        return self.public_key
+    def save_as_file(self):
+        """
+        Save this wallets' private key as a file.
+        Will be saved under the key folder.
+        """
+        with open("key/private_key.txt", "wb") as key_file:
+            pem = self.private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+            key_file.write(pem)
 
     def sign_data(self, data):
         """
@@ -58,7 +78,7 @@ class KeyPair:
             return False
 
     @staticmethod
-    def generate_private_number(word_list):
+    def _generate_private_number(word_list):
         """
         Generates a private number given a word list.
         This number can then be used to create a specific private key.

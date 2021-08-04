@@ -31,7 +31,7 @@ def update_balance(wallet, public_key):
 
         # Add all UTXO for this wallet.
         for utxo in value["utxo"]:
-            wallet.unspent_tx.append(TransactionOutput.from_json(utxo))
+            wallet.utxo.append(TransactionOutput.from_json(utxo))
 
         return value["balance"]
 
@@ -58,7 +58,7 @@ def send_transaction(wallet, receiver, amount):
         if response.status_code == 201:
             utxo = TransactionOutput.from_json(json.loads(response.content))
             print(type(utxo))
-            wallet.unspent_tx.append(utxo)
+            wallet.utxo.append(utxo)
 
     except NotEnoughFundsException as e:
         print(e)

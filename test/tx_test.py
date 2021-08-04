@@ -1,9 +1,16 @@
-
 import datetime as dt
+import random
+import time
 
-from util.hash import apply_sha256
-from wallet.network import genesis_wallet, update_balance, send_transaction
+from wallet.network import update_balance, send_transaction
 from wallet.private import PrivateWallet
+
+wallets = list()
+_blockchain_address = "http://127.0.0.1:8000/"
+_headers = {'Content-Type': "application/json"}
+
+coinbase = PrivateWallet.coinbase_wallet()
+genesis_wallet = PrivateWallet.genesis_wallet()
 
 
 def timed_interval(function):
@@ -18,34 +25,59 @@ def timed_interval(function):
                 current_min = new_min
 
         return result
+
     return wrap
+
 
 @timed_interval
 def send_random_tx():
-    print("SENDING")
+    pass
 
 
-def create_wallets_and_send_random_tx():
+def create_wallets_and_fill_wallets(wallet_count=3):
+    global wallets
 
-    num_of_wallets = 13
     start_wallet = PrivateWallet.genesis_wallet()
     update_balance(start_wallet, start_wallet.pk_str)
-    balance = start_wallet.get_balance() // num_of_wallets
-    print("Balance:", balance)
+    amount = start_wallet.get_balance() / wallet_count
+    total = 0
 
-    wallets = list()
-    for i in range(num_of_wallets):
+    # Create wallets.
+    for i in range(wallet_count):
         wallets.append(PrivateWallet.random_wallet())
+    # Send to all wallets.
+    for i in range(wallet_count - 1):
+        send_transaction(start_wallet, wallets[i], amount)
+        total += amount
 
-    update_balance(start_wallet, start_wallet.pk_str)
-
-    for i in range(num_of_wallets):
-        send_transaction(start_wallet, wallets[i], balance/num_of_wallets)
-
-
-
+    wallets.append(start_wallet)
 
 
+def send_random_tx():
 
-create_wallets_and_send_random_tx()
+    global wallets
 
+    for wallet in wallets:
+        update_balance(wallet, wallet.pk_str)
+        recipient = wallets[random.randint(0, len(wallets)-1)]
+
+        if recipient is wallet:
+            continue
+
+        send_transaction(wallet, recipient, random.randrange(start=1, stop=10000))
+
+
+
+create_wallets_and_fill_wallets(73)
+
+count = 0
+
+while True:
+    time.sleep(15)
+    print("Sending!")
+    send_random_tx()
+    if count == 34:
+        break
+    count += 1
+
+#response = requests.get(_blockchain_address + "/total")

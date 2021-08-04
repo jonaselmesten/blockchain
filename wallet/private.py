@@ -17,7 +17,7 @@ class PrivateWallet:
         elif key_pair:
             self.key_pair = key_pair
 
-        self.unspent_tx = []
+        self.utxo = []
         self.pk_str = public_key_to_string(self.key_pair.public_key)
 
     @property
@@ -96,11 +96,9 @@ class PrivateWallet:
         total = 0
         hashed_pk = apply_sha256(self.pk_str)
 
-        print("PREPAPE:", len(self.unspent_tx))
+        print("PREPAPE:", len(self.utxo))
 
-        for tx_output in self.unspent_tx:
-
-            print(tx_output.serialize())
+        for tx_output in self.utxo:
 
             if tx_output.receiver != hashed_pk:
                 continue
@@ -116,7 +114,7 @@ class PrivateWallet:
             raise NotEnoughFundsException
 
         for tx_output in tx_remove:
-            self.unspent_tx.remove(tx_output)
+            self.utxo.remove(tx_output)
 
         new_tx = CoinTX(self.pk_str, recipient.pk_str, amount, tx_inputs)
 
@@ -132,7 +130,7 @@ class PrivateWallet:
         total = 0
         hashed_pk = apply_sha256(self.pk_str)
 
-        for tx_output in self.unspent_tx:
+        for tx_output in self.utxo:
             if tx_output.receiver == hashed_pk:
                 total += tx_output.amount
 

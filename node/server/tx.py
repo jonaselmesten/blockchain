@@ -18,6 +18,24 @@ from wallet.crypto import verify_transaction, verify_signature
 tx_api = Blueprint("tx_api", __name__, template_folder="server")
 
 
+@tx_api.route('/total', methods=['GET'])
+def get_node_peers():
+    """
+    Get all peers addresses that this node is aware of.
+    @return: List of peers.
+    """
+
+    total = 0
+
+    for utxo in blockchain.utxo:
+        print(utxo.serialize())
+        total += utxo.amount
+
+    print(colored("Total:" + str(total) + " - UTXO:" + str(len(blockchain.utxo)), "green"))
+
+    return json.dumps({"Total:": total}, indent=4)
+
+
 @tx_api.route('/pending_tx')
 def get_pending_tx():
     """
@@ -152,17 +170,17 @@ def _process_token_tx(transaction):
                 raise UtxoError("Public key does not match")
 
             # Check if input is unspent.
-            if input_tx not in blockchain.unspent_tx:
+            if input_tx not in blockchain.utxo and input_tx not in blockchain.utxo_pool:
                 raise UtxoNotFoundError
 
             # Find location of parent TX.
             block_idx, tx_idx = blockchain.tx_position[input_tx.parent_tx_id]
 
+            # Check if parent TX is valid.
             if block_idx == len(blockchain.chain):
                 origin_tx = blockchain.memory_pool[tx_idx]
                 _token_tx_is_valid(origin_tx)
             else:
-                # Check if parent TX is valid.
                 origin_tx = blockchain.chain[block_idx].transactions[tx_idx]
                 _token_tx_is_valid(origin_tx)
 
@@ -180,12 +198,10 @@ def _process_token_tx(transaction):
         sender_amount = left_over
 
         tx_pos = TXPosition(len(blockchain.chain), len(blockchain.memory_pool))
-        print(colored("ADDING AT:", "green"))
-        print(colored(tx_pos, "green"))
         blockchain.tx_position[transaction.tx_id] = tx_pos
         utxo = _add_utxo_to_tx(transaction, sender_amount, recipient_amount, miner_amount)
         blockchain.memory_pool.add(transaction)
-        blockchain.unspent_tx.add(utxo)
+        blockchain.utxo_pool.add(utxo)
 
         return utxo
 

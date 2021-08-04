@@ -153,7 +153,7 @@ def blockchain_to_json():
     return json.dumps({"length": str(len(chain_data)),
                        "blocks": chain_data,
                        "data": blockchain.data_position,
-                       "utxo": list(blockchain.unspent_tx),
+                       "utxo": list(blockchain.utxo),
                        "peers": peer_list},
                       default=JsonSerializable.dumper,
                       indent=4)
@@ -174,7 +174,7 @@ def create_chain_from_dump(chain_dump):
     for utxo in chain_dump["utxo"]:
         unspent_tx.add(TransactionOutput.from_json(utxo))
 
-    generated_blockchain.unspent_tx = unspent_tx
+    generated_blockchain.utxo = unspent_tx
 
     for idx, block_data in enumerate(chain_dump["blocks"]):
 

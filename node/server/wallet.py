@@ -16,7 +16,7 @@ def get_balance():
     utxo = []
 
     # Add all UTXO
-    for tx_output in blockchain.unspent_tx:
+    for tx_output in blockchain.utxo:
         if tx_output.receiver == public_key:
             total += tx_output.amount
             utxo.append(tx_output)

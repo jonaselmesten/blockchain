@@ -20,7 +20,8 @@ class Blockchain:
     difficulty = 3
 
     def __init__(self):
-        self.unspent_tx = ordered_set.OrderedSet()
+        self.utxo = ordered_set.OrderedSet()
+        self.utxo_pool = ordered_set.OrderedSet()
         self.memory_pool = ordered_set.OrderedSet()
         self.chain = []
         self.tx_position = {}
@@ -34,7 +35,7 @@ class Blockchain:
 
         coinbase.sign_transaction(genesis_tx)
 
-        self.unspent_tx.add(TransactionOutput(apply_sha256(first_wallet.pk_str), amount, genesis_tx.tx_id, 0))
+        self.utxo.add(TransactionOutput(apply_sha256(first_wallet.pk_str), amount, genesis_tx.tx_id, 0))
         self.tx_position[genesis_tx.tx_id] = TXPosition(0, 0)
 
         genesis_block.hash = genesis_block.compute_hash()

@@ -31,13 +31,13 @@ def wallet_to_wallet(wallet_a, wallet_b, amount=None):
     if amount is None:
         amount = random.randint(1, 100)
     utxo = blockchain.process_tx(wallet_a.prepare_tx(wallet_b.pk_str, amount))
-    wallet1.unspent_tx.add(utxo)
-    wallet_b.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
+    wallet1.utxo.add(utxo)
+    wallet_b.utxo = copy_of_utxo(blockchain.utxo)
 
 
 blockchain = Blockchain()
 blockchain.create_genesis_block(wallet1)
-wallet1.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
+wallet1.utxo = copy_of_utxo(blockchain.utxo)
 
 total_supply = 21000000
 
@@ -73,7 +73,7 @@ for i in range(500):
     blockchain.mine()
     print(i)
 
-print("UTXO:", len(blockchain.unspent_tx))
+print("UTXO:", len(blockchain.utxo))
 print("Blocks:", len(blockchain.chain))
 total_balance = 0
 tx_count = 0
@@ -81,7 +81,7 @@ utxo_count = 0
 
 
 for wallet in wallets:
-    wallet.unspent_tx = copy_of_utxo(blockchain.unspent_tx)
+    wallet.utxo = copy_of_utxo(blockchain.utxo)
     wallet_balance = wallet.get_balance()
 
     if wallet_balance < 10:
@@ -89,7 +89,7 @@ for wallet in wallets:
 
     total_balance += wallet_balance
 
-for utxo in blockchain.unspent_tx:
+for utxo in blockchain.utxo:
     utxo_count += utxo.amount
 
 for block in blockchain.chain:
@@ -114,7 +114,7 @@ def blockchain_to_json():
     return json.dumps({"length": len(chain_data),
                        "blocks": chain_data,
                        "data": blockchain.data,
-                       "utxo": blockchain.unspent_tx},
+                       "utxo": blockchain.utxo},
                       default=JsonSerializable.dumper,
                       indent=4)
 
@@ -129,7 +129,7 @@ def create_chain_from_dump(chain_dump):
     generated_blockchain.create_genesis_block()
 
     generated_blockchain.data = chain_dump["data"]
-    generated_blockchain.unspent_tx = chain_dump["utxo"]
+    generated_blockchain.utxo = chain_dump["utxo"]
 
     for idx, block_data in enumerate(chain_dump["blocks"]):
 

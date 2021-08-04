@@ -1,3 +1,4 @@
+import ordered_set
 from flask import request, Blueprint
 from termcolor import colored
 
@@ -23,8 +24,7 @@ def start_mine_process(second_interval=15):
     while True:
         new_min = dt.datetime.now().second
         if new_min % second_interval == 0 and new_min != current_min:
-            #mine()
-            print("MINE")
+            mine()
             current_min = new_min
 
 
@@ -69,10 +69,12 @@ def mine():
         blockchain.tx_position[transaction.tx_id] = TXPosition(len(blockchain.chain), index)
         # Add outputs as unspent.
         for utxo in transaction.tx_outputs:
-            blockchain.unspent_tx.add(utxo)
+            blockchain.utxo.add(utxo)
         # Remove utxo that now are spent.
         for input_tx in transaction.tx_inputs:
-            blockchain.unspent_tx.remove(input_tx)
+            blockchain.utxo.remove(input_tx)
+            if input_tx in blockchain.utxo_pool:
+                blockchain.utxo_pool.remove(input_tx)
 
     new_block = Block(index=len(blockchain.chain),
                       transactions=list(blockchain.memory_pool),
@@ -81,9 +83,17 @@ def mine():
     new_block.hash = new_block.compute_hash()
 
     blockchain.chain.append(new_block)
-    blockchain.memory_pool = set()
+    blockchain.memory_pool = ordered_set.OrderedSet()
 
     print("New block added:", len(blockchain.chain))
+
+    # TODO: Test for balance.
+    total = 0
+
+    for utxo in blockchain.utxo:
+        total += utxo.amount
+
+    print(colored("Total:" + str(total) + " - UTXO:" + str(len(blockchain.utxo))))
 
 
 

@@ -1,15 +1,40 @@
+![plot](resources/header.jpg)
+
 # Blockchain
 
-PoW blockchain with p2p-transactions.
+## Table of contents
+* [Node](#node)
+* [Wallet](#wallet)
 
-<h1>Install</h1>
-Simply install everything in requirements.txt and you should be ready to go.
+## Attention!
+This is still very much a work in progress.
 
-<h2>Usage</h2>
-Under scripts you'll find a couple of bash-files.
+## General info
+Blockchain
 
-<ul>
-  <li>bash start - Will start up 3 local & independent nodes.</li>
-  <li>bash register - Will sync all nodes to each other.</li>
-  <li>Ready to go! Use the wallet-GUI to send funds etc.</li>
-</ul>  
+![plot](resources/sign)
+
+## Node
+To use this project:
+* A
+* B
+* C
+
+Code:
+  ```
+    # .PCD v0.7 - Point Cloud Data file format
+    -0.2881591 -0.9084934 7.9559093 389515
+    ...........
+  ```
+
+
+## Wallet
+* With the wallet you can:
+    * A
+    * B
+
+![plot](resources/wallet.png)
+
+
+
+

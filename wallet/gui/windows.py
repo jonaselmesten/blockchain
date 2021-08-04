@@ -20,8 +20,8 @@ class MainWin(QMainWindow):
 
         self.connect_signals()
 
-        self.public_key.setText(public_key)
-        self.wallet_balance.setText(str(balance))
+        #self.public_key.setText(public_key)
+        #self.wallet_balance.setText(str(balance))
 
         self.send_function = send_function
 

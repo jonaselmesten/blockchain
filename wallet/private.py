@@ -96,7 +96,12 @@ class PrivateWallet:
         total = 0
         hashed_pk = apply_sha256(self.pk_str)
 
+        print("PREPAPE:", len(self.unspent_tx))
+
         for tx_output in self.unspent_tx:
+
+            print(tx_output.serialize())
+
             if tx_output.receiver != hashed_pk:
                 continue
 

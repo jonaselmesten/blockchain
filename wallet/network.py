@@ -1,6 +1,7 @@
 import json
 
 import requests
+from termcolor import colored
 
 from transaction.exceptions import NotEnoughFundsException
 from transaction.tx_output import TransactionOutput
@@ -32,8 +33,6 @@ def update_balance(wallet, public_key):
         for utxo in value["utxo"]:
             wallet.unspent_tx.append(TransactionOutput.from_json(utxo))
 
-        print("Wallet balance:", value)
-
         return value["balance"]
 
     except OSError:
@@ -49,12 +48,18 @@ def send_transaction(wallet, receiver, amount):
     """
     try:
         new_tx = wallet.prepare_tx(receiver, float(amount))
-        print(new_tx.serialize())
+
+        print(colored(new_tx.serialize(), "green"))
+
         response = requests.post(_blockchain_address + "/new_transaction",
                                  headers={'Content-type': 'application/json'},
                                  json=new_tx.serialize())
 
-        print("Sent TX - ", response.status_code)
+        if response.status_code == 201:
+            utxo = TransactionOutput.from_json(json.loads(response.content))
+            print(type(utxo))
+            wallet.unspent_tx.append(utxo)
+
     except NotEnoughFundsException as e:
         print(e)
     except Exception as e:

@@ -5,6 +5,7 @@ from cryptography.exceptions import InvalidSignature
 from flask import request, Blueprint
 from termcolor import colored
 
+from node.chain.blockchain import TXPosition
 from node.chain.exceptions import UtxoNotFoundError, UtxoError
 from node.server.chain import blockchain, peers
 from transaction.exceptions import NotEnoughFundsException
@@ -46,7 +47,11 @@ def new_token_transaction():
         print(colored("Tx already in mempool", "red"))
         return "Tx already in mempool", 409
 
-    if _process_tx(tx):
+    # Process tx and create utxo that can be sent to origin wallet.
+    utxo = _process_tx(tx)
+
+    if utxo is not None:
+
         print(colored("Transaction valid - Added to mempool.", "green"))
 
         for node in peers:
@@ -55,12 +60,7 @@ def new_token_transaction():
     else:
         return "Invalid transaction", 400
 
-    # TODO: Temporary for testing
-    if len(blockchain.memory_pool) >= 1:
-        pass
-        #mine()
-
-    return "Success", 201
+    return utxo.serialize(), 201,
 
 
 def _process_tx(tx):
@@ -158,9 +158,13 @@ def _process_token_tx(transaction):
             # Find location of parent TX.
             block_idx, tx_idx = blockchain.tx_position[input_tx.parent_tx_id]
 
-            # Check if parent TX is valid.
-            origin_tx = blockchain.chain[block_idx].transactions[tx_idx]
-            _token_tx_is_valid(origin_tx)
+            if block_idx == len(blockchain.chain):
+                origin_tx = blockchain.memory_pool[tx_idx]
+                _token_tx_is_valid(origin_tx)
+            else:
+                # Check if parent TX is valid.
+                origin_tx = blockchain.chain[block_idx].transactions[tx_idx]
+                _token_tx_is_valid(origin_tx)
 
             tx_total += input_tx.amount
 
@@ -175,24 +179,28 @@ def _process_token_tx(transaction):
         # sender_amount = left_over - miner_amount
         sender_amount = left_over
 
-        blockchain.memory_pool.add(transaction)
-        # TODO: Sender should receive this to update the wallet balance.
+        tx_pos = TXPosition(len(blockchain.chain), len(blockchain.memory_pool))
+        print(colored("ADDING AT:", "green"))
+        print(colored(tx_pos, "green"))
+        blockchain.tx_position[transaction.tx_id] = tx_pos
         utxo = _add_utxo_to_tx(transaction, sender_amount, recipient_amount, miner_amount)
+        blockchain.memory_pool.add(transaction)
+        blockchain.unspent_tx.add(utxo)
 
-        return True
+        return utxo
 
     except InvalidSignature:
         print("Invalid signature - Transaction failed.")
-        return False
+        return
     except NotEnoughFundsException:
         print("Not enough funds in all inputs - Transaction failed.")
-        return False
+        return
     except UtxoNotFoundError:
         print("UTXO of input does not exist - Transaction failed.")
-        return False
+        return
     except UtxoError:
         print("UTXO addresses does not match - Transaction failed.")
-        return False
+        return
 
 
 def _add_utxo_to_tx(transaction, sender_amount, recipient_amount, miner_amount):

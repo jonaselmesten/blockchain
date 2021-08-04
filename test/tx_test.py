@@ -27,9 +27,9 @@ def send_random_tx():
 
 def create_wallets_and_send_random_tx():
 
-    num_of_wallets = 8
+    num_of_wallets = 13
     start_wallet = PrivateWallet.genesis_wallet()
-
+    update_balance(start_wallet, start_wallet.pk_str)
     balance = start_wallet.get_balance() // num_of_wallets
     print("Balance:", balance)
 
@@ -40,8 +40,9 @@ def create_wallets_and_send_random_tx():
     update_balance(start_wallet, start_wallet.pk_str)
 
     for i in range(num_of_wallets):
-        update_balance(start_wallet, start_wallet.pk_str)
-        send_transaction(start_wallet, wallets[i], balance)
+        send_transaction(start_wallet, wallets[i], balance/num_of_wallets)
+
+
 
 
 

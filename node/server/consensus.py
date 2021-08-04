@@ -23,7 +23,8 @@ def start_mine_process(second_interval=15):
     while True:
         new_min = dt.datetime.now().second
         if new_min % second_interval == 0 and new_min != current_min:
-            mine()
+            #mine()
+            print("MINE")
             current_min = new_min
 
 
@@ -57,6 +58,13 @@ def mine():
 
     # Update UTXO and transaction position.
     for index, transaction in enumerate(blockchain.memory_pool):
+
+        # Do not include tx if something goes wrong.
+        try:
+            pass
+        except Exception as e:
+            pass
+
         # Add tx position.
         blockchain.tx_position[transaction.tx_id] = TXPosition(len(blockchain.chain), index)
         # Add outputs as unspent.

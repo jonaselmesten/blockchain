@@ -10,13 +10,7 @@ class Block(JsonSerializable):
         """
         @param index: Index of the block in the blockchain.
         @param transactions: TX of this block.
-        @param previous_hash: Hash of previous block.
-        @param nonce: Nonce value used when mining.
         """
-        # TODO: Merkle root of all TX.
-        # TODO: Only thing that is hashed in a block is the HEADER.
-        # TODO: Add header.
-        # TODO: Merkle tree includes coinbase-TX (mining award and TX-cost).
 
         self.header = header
         self.index = index

@@ -48,10 +48,10 @@ def get_pending_tx():
 
 
 @tx_api.route('/new_transaction', methods=['POST'])
-def new_token_transaction():
+def new_coin_transaction():
     """
     Call that will handle new transactions being submitted to the network.
-    Will check if transaction already exists in the mempool before starting the validaton process.
+    Will check if transaction already exists in the mempool before starting the validation process.
     Validated transactions end up in the mempool, otherwise it'll just be discarded.
     @return: 201 - Success  409 - Already in mempool    400 - Invalid transaction.
     """
@@ -147,7 +147,7 @@ def _process_file_tx(file_tx):
         print("Invalid signature - Transaction failed.")
         return False
 
-# TODO: Change mempool to list to preserve order.
+
 def _process_token_tx(transaction):
     """
     Function to process and validate a TokenTX.
@@ -160,7 +160,7 @@ def _process_token_tx(transaction):
     tx_total = 0
 
     try:
-        _token_tx_is_valid(transaction)
+        _coin_tx_is_valid(transaction)
 
         # Check that all input is valid.
         for input_tx in transaction.tx_inputs:
@@ -179,10 +179,10 @@ def _process_token_tx(transaction):
             # Check if parent TX is valid.
             if block_idx == len(blockchain.chain):
                 origin_tx = blockchain.memory_pool[tx_idx]
-                _token_tx_is_valid(origin_tx)
+                _coin_tx_is_valid(origin_tx)
             else:
                 origin_tx = blockchain.chain[block_idx].transactions[tx_idx]
-                _token_tx_is_valid(origin_tx)
+                _coin_tx_is_valid(origin_tx)
 
             tx_total += input_tx.amount
 
@@ -219,6 +219,7 @@ def _process_token_tx(transaction):
         return
 
 
+# TODO: Fix miner UTXO reward.
 def _add_utxo_to_tx(transaction, sender_amount, recipient_amount, miner_amount):
     """
     Creates and adds the UTXO to the transaction.
@@ -233,11 +234,10 @@ def _add_utxo_to_tx(transaction, sender_amount, recipient_amount, miner_amount):
     # miner_utxo = TransactionOutput(apply_sha256(self.coinbase.pk_str), miner_amount, transaction.tx_id, 2)
     transaction.tx_outputs = [recipient_utxo, sender_utxo]
 
-    # Return UTXO
     return TransactionOutput(apply_sha256(transaction.sender), sender_amount, transaction.tx_id, 1)
 
 
-def _token_tx_is_valid(transaction):
+def _coin_tx_is_valid(transaction):
     """
     Validates TokenTX.
     @param transaction: TokenTX instance.
@@ -253,4 +253,3 @@ def _file_tx_is_valid(file_tx):
     sign_data = bytes(file_tx.get_sign_data(), "utf-8")
     for public_key_str, signature in zip(file_tx.public_keys, file_tx.signatures):
         verify_signature(public_key_str, signature, sign_data)
-

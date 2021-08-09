@@ -1,0 +1,5 @@
+#!/bin/bash
+
+gnome-terminal -- bash run_node 8000
+gnome-terminal -- bash run_node 8001
+gnome-terminal -- bash run_node 8002

@@ -1,8 +1,10 @@
 from collections import namedtuple
 
 import ordered_set
+from cryptography.exceptions import InvalidSignature
 
 from node.chain.block import Block
+from node.server.tx import _coin_tx_is_valid
 from transaction.tx_output import TransactionOutput
 from transaction.type import CoinTX
 
@@ -11,6 +13,7 @@ from transaction.type import CoinTX
 # The UTXO database is also loaded in to RAM when you run_node bitcoind,
 # which further helps to speed up verification.
 from util.hash import apply_sha256
+from wallet.crypto import verify_transaction
 
 TXPosition = namedtuple("TXPosition", ("block_idx", "tx_idx"))
 
@@ -63,8 +66,6 @@ class Blockchain:
         for block in chain.chain:
 
             block_hash = block.hash
-            # remove the hash field to recompute the hash again
-            # using `compute_hash` method.
             delattr(block, "hash")
 
             if not cls.is_valid_proof(block, block_hash) or previous_hash != block.previous_hash:
@@ -78,3 +79,7 @@ class Blockchain:
 
     def __iter__(self):
         return iter(self.chain)
+
+
+
+

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+echo "Starting blockchain"
+
+export FLASK_APP=../node/start_node.py
+flask run --port ${1}
+
+read

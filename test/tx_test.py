@@ -54,18 +54,16 @@ def create_wallets_and_fill_wallets(wallet_count=3):
 
 
 def send_random_tx():
-
     global wallets
 
     for wallet in wallets:
         update_balance(wallet, wallet.pk_str)
-        recipient = wallets[random.randint(0, len(wallets)-1)]
+        recipient = wallets[random.randint(0, len(wallets) - 1)]
 
         if recipient is wallet:
             continue
 
         send_transaction(wallet, recipient, random.randrange(start=1, stop=10000))
-
 
 
 create_wallets_and_fill_wallets(73)
@@ -80,4 +78,4 @@ while True:
         break
     count += 1
 
-#response = requests.get(_blockchain_address + "/total")
+# response = requests.get(_blockchain_address + "/total")

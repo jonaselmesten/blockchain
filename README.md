@@ -1,5 +1,3 @@
-![plot](resources/header.jpg)
-
 # Blockchain
 
 ## Table of contents

@@ -18,7 +18,6 @@ try:
 except Exception as e:
     print("Could not run mine thread.")
 
-
 if __name__ == "__main__":
     app.run()
 
